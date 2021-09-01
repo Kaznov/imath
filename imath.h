@@ -1,3 +1,4 @@
+
 //                   Copyright(c) Kamil Kaznowski 2021.
 //         Distributed under the Boost Software License, Version 1.0.
 //                (See accompanying file LICENSE or copy at
@@ -8,10 +9,17 @@
 ////////////////   Library with common operations on integers   ////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+
 #ifndef IMATHLIB
 #define IMATHLIB
 
-static_assert(__cplusplus >= 201402L, "C++14 support is needed");
+#ifdef _MSVC_LANG
+#define IMATHLIB_CPP_VER _MSVC_LANG
+#else
+#define IMATHLIB_CPP_VER __cplusplus
+#endif
+
+static_assert(IMATHLIB_CPP_VER >= 201402L, "C++14 support is needed");
 static_assert(sizeof(long long) == 8, "long long must be 8 bytes");
 static_assert(-2 >> 1 == -1,
               "right shift on signed integers must be arithmetic (sar)");
