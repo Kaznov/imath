@@ -38,12 +38,12 @@ int main() {
     // range-for loop also supported!
     for (size_t i = 0; i < fact_result.size() - 1; ++i) {
        auto factor = fact_result[i];
-       std::cout << factor.prime << "**" factor.power << " * ";
+       std::cout << factor.prime << "**" << factor.power << " * ";
     }
-    std::cout << fact_result[i].prime << "**" fact_result[i].power;
+    std::cout << fact_result[i].prime << "**" << fact_result[i].power;
 }
 ```
-Expected output: `2**2 * 3**3 * 5**1 * 7**1 * 1019`
+Expected output: `2**2 * 3**3 * 5**1 * 7**1 * 1019**1`
 
 
 **Generate a compile-time prime array**
