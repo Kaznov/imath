@@ -180,7 +180,7 @@ IMATHLIB_CONSTEXPR20 int countLeadingZeroes(uint64_t n) {
     if (n == 0) return 64;
     return __builtin_clzll(n);
 #else
-    return countTrailingZeroesFallback(n);
+    return countLeadingZeroesFallback(n);
 #endif
 
 #elif defined(_MSC_VER)
@@ -192,7 +192,7 @@ IMATHLIB_CONSTEXPR20 int countLeadingZeroes(uint64_t n) {
     (void)_BitScanReverse64(&index, n);
     return 63 - index;
 #else
-    return countTrailingZeroesFallback(n);
+    return countLeadingZeroesFallback(n);
 #endif
 
 #elif __cplusplus >= 202002L
