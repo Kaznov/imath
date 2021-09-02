@@ -34,7 +34,7 @@ static_assert(imath::isPrime(1'000'000'007u);
 ```c++
 int main() {
     auto fact_result = imath::factorize(3'851'820u);
-    std::cout << "3851820  = ";
+    std::cout << "3851820 = ";
     // range-for loop also supported!
     for (size_t i = 0; i < fact_result.size() - 1; ++i) {
        auto factor = fact_result[i];
@@ -43,7 +43,7 @@ int main() {
     std::cout << fact_result[i].prime << "**" << fact_result[i].power;
 }
 ```
-Expected output: `2**2 * 3**3 * 5**1 * 7**1 * 1019**1`
+Expected output: `3851820 = 2**2 * 3**3 * 5**1 * 7**1 * 1019**1`
 
 
 **Generate a compile-time prime array**
@@ -68,7 +68,7 @@ int main() {
 }
 ```
 
-**Test if number is a perfect square
+**Test if number is a perfect square**
 ```c++
 int main() {
     std::cout << 1046528 << imath::isPerfectSquare(1046528u) ? "IS" : "IS NOT"
