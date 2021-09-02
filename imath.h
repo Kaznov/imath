@@ -69,13 +69,19 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 #endif
 #endif  // !defined(IMATHLIB_ASSERT)
 
+#ifdef _MSC_VER
+#  define IMATHLIB_MSC_WARNING(id) __pragma(warning(suppress : id))
+#else
+#  define IMATHLIB_MSC_WARNING(id)
+#endif
+
 namespace imath {
 
 constexpr bool isPrime(uint32_t n);
 IMATHLIB_CONSTEXPR20 bool isPrime(uint64_t n);
 
-constexpr bool nextPrimeAfter(uint32_t n);
-IMATHLIB_CONSTEXPR20 bool nextPrimeAfter(uint64_t n);
+constexpr uint32_t nextPrimeAfter(uint32_t n);
+IMATHLIB_CONSTEXPR20 uint64_t nextPrimeAfter(uint64_t n);
 
 struct FactorU32;
 class FactorizationResultU32;
@@ -102,9 +108,9 @@ IMATHLIB_CONSTEXPR20 uint32_t lcm(uint32_t a, uint32_t b);
 IMATHLIB_CONSTEXPR20 uint64_t lcm(uint64_t a, uint64_t b);
 
 constexpr uint32_t roundUpToMultipleOf(uint32_t n, uint32_t mul);
-constexpr uint32_t roundUpToMultipleOf(uint64_t n, uint64_t mul);
+constexpr uint64_t roundUpToMultipleOf(uint64_t n, uint64_t mul);
 constexpr uint32_t roundDownToMultipleOf(uint32_t n, uint32_t mul);
-constexpr uint32_t roundDownToMultipleOf(uint64_t n, uint64_t mul);
+constexpr uint64_t roundDownToMultipleOf(uint64_t n, uint64_t mul);
 
 // class MontgomerySpaceU32;
 // class MontgomeryU32;
@@ -245,6 +251,7 @@ IMATHLIB_CONSTEXPR20 int countLeadingZeroes(uint32_t n) {
 
 constexpr int countTrailingZeroesFallback(uint64_t n) {
     if (n == 0) return 64;
+IMATHLIB_MSC_WARNING(4146)
     n = n & (-n); // extract rightmost bit
     // This magic number, has bit representation that is a de Bruijn sequence.
     // Because of that it is a perfect hash for powers of 2.
@@ -291,6 +298,7 @@ IMATHLIB_CONSTEXPR20 int countTrailingZeroes(uint64_t n) {
 
 constexpr int countTrailingZeroesFallback(uint32_t n) {
     if (n == 0) return 32;
+IMATHLIB_MSC_WARNING(4146)
     n = n & (-n); // extract rightmost bit
     // This magic number has bit representation that is a de Bruijn sequence.
     // Because of that it is a perfect hash for powers of 2.
@@ -327,6 +335,11 @@ IMATHLIB_CONSTEXPR20 int countTrailingZeroes(uint32_t n) {
 }
 
 constexpr uint32_t gcdModuloRecursive(uint32_t a, uint32_t b) {
+    if (b == 0) return a;
+    return gcdModuloRecursive(b, a % b);
+}
+
+constexpr uint64_t gcdModuloRecursive(uint64_t a, uint64_t b) {
     if (b == 0) return a;
     return gcdModuloRecursive(b, a % b);
 }
@@ -776,13 +789,13 @@ IMATHLIB_CONSTEXPR20 bool isPrime(uint64_t n) {
            detail::isSPRP(n, uint64_t{b4});
 }
 
-constexpr bool nextPrimeAfter(uint32_t n) {
+constexpr uint32_t nextPrimeAfter(uint32_t n) {
     IMATHLIB_ASSERT(n < 4294967291u);
     if (n < 2) return 2;
     for (n = n + 1 + (n & 1); !isPrime(n); n += 2);
     return n;
 }
-IMATHLIB_CONSTEXPR20 bool nextPrimeAfter(uint64_t n) {
+IMATHLIB_CONSTEXPR20 uint64_t nextPrimeAfter(uint64_t n) {
     IMATHLIB_ASSERT(n < 18446744073709551557ull);
     if (n < 4294967291u) {  // biggest 32-bit prime
         return nextPrimeAfter(static_cast<uint32_t>(n));
@@ -1181,7 +1194,7 @@ constexpr uint32_t roundUpToMultipleOf(uint32_t n, uint32_t mul) {
     IMATHLIB_ASSERT((n + mul - 1) > n);
     return ((n + mul - 1) / mul) * mul;
 }
-constexpr uint32_t roundUpToMultipleOf(uint64_t n, uint64_t mul) {
+constexpr uint64_t roundUpToMultipleOf(uint64_t n, uint64_t mul) {
     IMATHLIB_ASSERT(mul);
     IMATHLIB_ASSERT((n + mul - 1) > n);
     return ((n + mul - 1) / mul) * mul;
@@ -1190,7 +1203,7 @@ constexpr uint32_t roundDownToMultipleOf(uint32_t n, uint32_t mul) {
     IMATHLIB_ASSERT(mul);
     return n - n % mul;
 }
-constexpr uint32_t roundDownToMultipleOf(uint64_t n, uint64_t mul) {
+constexpr uint64_t roundDownToMultipleOf(uint64_t n, uint64_t mul) {
     IMATHLIB_ASSERT(mul);
     return n - n % mul;
 }
@@ -1212,7 +1225,8 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint32_t n) {
         // so use it only for constexpr
         root = detail::isqrt(n);
     } else {
-        root = std::roundf(std::sqrt(float(n)));
+        root = static_cast<uint32_t>(
+                std::roundf(std::sqrt(static_cast<float>(n))));
     }
     return root * root == n;
 }
@@ -1241,7 +1255,7 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
         // so use it only for constexpr
         root = detail::isqrt(n);
     } else {
-        root = std::round(std::sqrt(n));
+        root = static_cast<uint64_t>(std::round(std::sqrt(n)));
     }
     return root * root == n;
 }
