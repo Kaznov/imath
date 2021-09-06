@@ -40,7 +40,8 @@ int main() {
        auto factor = fact_result[i];
        std::cout << factor.prime << "**" << factor.power << " * ";
     }
-    std::cout << fact_result[i].prime << "**" << fact_result[i].power;
+    std::cout << fact_result.back().prime << "**"
+              << fact_result.back().power;
 }
 ```
 Expected output: `3851820 = 2**2 * 3**3 * 5**1 * 7**1 * 1019**1`
@@ -86,5 +87,14 @@ int main() {
               << imath::roundUpToMultipleOf(number, 1000) << "\n";
     std::cout << number << " rounded down to thousands is "
               << imath::roundDownToMultipleOf(number, 1000) << "\n"; 
+}
+```
+
+**Raise a number to given power over a modulus**
+```c++
+int main() {
+    std::cout << " (5 ** 3) % 13 =  "
+              << imath::powmod(5, 3, 13) << "\n";
+    // And there is no risk of overflow!
 }
 ```

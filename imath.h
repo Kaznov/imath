@@ -10,8 +10,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef IMATHLIB
-#define IMATHLIB
+#ifndef IMATHLIB_IMATH_H
+#define IMATHLIB_IMATH_H
 
 #ifdef _MSVC_LANG
 #define IMATHLIB_CPP_VER _MSVC_LANG
@@ -94,13 +94,13 @@ IMATHLIB_CONSTEXPR20 FactorizationResultU64 factorize(uint64_t);
 template <size_t SIZE, typename T = uint32_t>
 class PrimeArray;
 
-constexpr uint32_t ipow(uint32_t n, uint32_t pow);
-constexpr uint64_t ipow(uint64_t n, uint64_t pow);
+constexpr uint32_t pow(uint32_t n, uint32_t pow);
+constexpr uint64_t pow(uint64_t n, uint64_t pow);
 
-constexpr uint32_t imulmod(uint32_t a, uint32_t b, uint32_t mod);
-IMATHLIB_CONSTEXPR20 uint64_t imulmod(uint64_t a, uint64_t b, uint64_t mod);
-constexpr uint32_t ipowmod(uint32_t n, uint32_t pow, uint32_t mod);
-IMATHLIB_CONSTEXPR20 uint64_t ipowmod(uint64_t n, uint64_t pow, uint64_t mod);
+constexpr uint32_t mulmod(uint32_t a, uint32_t b, uint32_t mod);
+IMATHLIB_CONSTEXPR20 uint64_t mulmod(uint64_t a, uint64_t b, uint64_t mod);
+constexpr uint32_t powmod(uint32_t n, uint32_t pow, uint32_t mod);
+IMATHLIB_CONSTEXPR20 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod);
 
 IMATHLIB_CONSTEXPR20 uint32_t gcd(uint32_t a, uint32_t b);
 IMATHLIB_CONSTEXPR20 uint64_t gcd(uint64_t a, uint64_t b);
@@ -445,11 +445,11 @@ constexpr
 bool isSPRP(uint32_t n, uint32_t base) {
     uint32_t d = n - 1, s = 0;
     while ((d & 1) == 0) ++s, d >>= 1;
-    uint32_t cur = ipowmod(base, d, n);
+    uint32_t cur = powmod(base, d, n);
     if (cur == 1) return true;
     for (uint32_t r = 0; r < s; r++) {
         if (cur == n - 1) return true;
-        cur = imulmod(cur, cur, n);
+        cur = mulmod(cur, cur, n);
     }
     return false;
 }
@@ -462,11 +462,11 @@ IMATHLIB_CONSTEXPR20
 bool isSPRP(uint64_t n, uint64_t base) {
     uint64_t d = n - 1, s = 0;
     while ((d & 1) == 0) ++s, d >>= 1;
-    uint64_t cur = ipowmod(base, d, n);
+    uint64_t cur = powmod(base, d, n);
     if (cur == 1) return true;
     for (uint32_t r = 0; r < s; r++) {
         if (cur == n - 1) return true;
-        cur = imulmod(cur, cur, n);
+        cur = mulmod(cur, cur, n);
     }
     return false;
 }
@@ -497,7 +497,7 @@ uint32_t pollardRhoFactorization(uint32_t n, uint32_t starting_value) {
 }
 
 IMATHLIB_CONSTEXPR20 uint64_t pollardRhoPoly(uint64_t x, uint64_t mod) {
-    auto r = imulmod(x, x, mod) + 1;
+    auto r = mulmod(x, x, mod) + 1;
     return r == mod ? 0 : r;
 }
 
@@ -723,11 +723,21 @@ public:
         }
     }
 
-    constexpr size_t size() const { return SIZE; }
-    constexpr const T* begin() const { return array; }
-    constexpr const T* end() const { return array + SIZE; }
-    constexpr const T& operator[](size_t idx) const { return array[idx]; }
-    constexpr const T& back() const { return array[SIZE - 1]; }
+    constexpr size_t size() const {
+        return SIZE;
+    }
+    constexpr const T* begin() const {
+        return array;
+    }
+    constexpr const T* end() const {
+        return array + SIZE;
+    }
+    constexpr const T& operator[](size_t idx) const {
+        return array[idx];
+    }
+    constexpr const T& back() const {
+        return array[SIZE - 1];
+    }
 
 private:
     T array[SIZE];
@@ -819,8 +829,8 @@ struct FactorU32 {
  * */
 class FactorizationResultU32 {
 public:
-    constexpr const FactorU32& operator[](size_t idx) const {
-        return factors_[idx];
+    constexpr size_t size() const {
+        return size_;
     }
     constexpr const FactorU32* begin() const {
         return factors_;
@@ -828,8 +838,11 @@ public:
     constexpr const FactorU32* end() const {
         return factors_ + size_;
     }
-    constexpr size_t size() const {
-        return size_;
+    constexpr const FactorU32& operator[](size_t idx) const {
+        return factors_[idx];
+    }
+    constexpr const FactorU32& back() const {
+        return factors_[size_ - 1];
     }
 
 private:
@@ -878,8 +891,8 @@ struct FactorU64 {
  * */
 class FactorizationResultU64 {
 public:
-    constexpr const FactorU64& operator[](size_t idx) const {
-        return factors_[idx];
+    constexpr size_t size() const {
+        return size_;
     }
     constexpr const FactorU64* begin() const {
         return factors_;
@@ -887,8 +900,11 @@ public:
     constexpr const FactorU64* end() const {
         return factors_ + size_;
     }
-    constexpr size_t size() const {
-        return size_;
+    constexpr const FactorU64& operator[](size_t idx) const {
+        return factors_[idx];
+    }
+    constexpr const FactorU64& back() const {
+        return factors_[size_ - 1];
     }
 
 private:
@@ -1052,7 +1068,7 @@ IMATHLIB_CONSTEXPR20 FactorizationResultU64 factorize(uint64_t n) {
     return result;
 }
 
-constexpr uint32_t ipow(uint32_t n, uint32_t pow) {
+constexpr uint32_t pow(uint32_t n, uint32_t pow) {
     uint32_t result = 1;
     while (pow) {
         if (pow & 1) result *= n;
@@ -1061,7 +1077,7 @@ constexpr uint32_t ipow(uint32_t n, uint32_t pow) {
     }
     return result;
 }
-constexpr uint64_t ipow(uint64_t n, uint64_t pow) {
+constexpr uint64_t pow(uint64_t n, uint64_t pow) {
     uint64_t result = 1;
     while (pow) {
         if (pow & 1) result *= n;
@@ -1071,11 +1087,11 @@ constexpr uint64_t ipow(uint64_t n, uint64_t pow) {
     return result;
 }
 
-constexpr uint32_t imulmod(uint32_t a, uint32_t b, uint32_t mod) {
+constexpr uint32_t mulmod(uint32_t a, uint32_t b, uint32_t mod) {
     IMATHLIB_ASSERT(mod > 0);
     return ((uint64_t)a * b) % mod;
 }
-IMATHLIB_CONSTEXPR20 uint64_t imulmod(uint64_t a, uint64_t b,
+IMATHLIB_CONSTEXPR20 uint64_t mulmod(uint64_t a, uint64_t b,
                                              uint64_t mod) {
     IMATHLIB_ASSERT(mod > 0);
     if ((mod & (mod - 1)) == 0) {  // is power of two
@@ -1093,24 +1109,24 @@ IMATHLIB_CONSTEXPR20 uint64_t imulmod(uint64_t a, uint64_t b,
     return detail::mod128by64(x, mod);
 }
 
-constexpr uint32_t ipowmod(uint32_t n, uint32_t pow, uint32_t mod) {
+constexpr uint32_t powmod(uint32_t n, uint32_t pow, uint32_t mod) {
     IMATHLIB_ASSERT(mod > 0);
     uint32_t cur = n;
     uint32_t res = 1;
     while (pow) {
-        if (pow & 1) res = imulmod(cur, res, mod);
-        cur = imulmod(cur, cur, mod);
+        if (pow & 1) res = mulmod(cur, res, mod);
+        cur = mulmod(cur, cur, mod);
         pow >>= 1;
     }
     return res;
 }
-IMATHLIB_CONSTEXPR20 uint64_t ipowmod(uint64_t n, uint64_t pow, uint64_t mod) {
+IMATHLIB_CONSTEXPR20 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod) {
     IMATHLIB_ASSERT(mod > 0);
     uint64_t cur = n;
     uint64_t res = 1;
     while (pow) {
-        if (pow & 1) res = imulmod(cur, res, mod);
-        cur = imulmod(cur, cur, mod);
+        if (pow & 1) res = mulmod(cur, res, mod);
+        cur = mulmod(cur, cur, mod);
         pow >>= 1;
     }
     return res;
@@ -1263,7 +1279,7 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
 }  // namespace imath
 
 // These are all the macros that can be defined by this header:
-// IMATHLIB
+// IMATHLIB_IMATH_H
 // IMATHLIB_CONSTEXPR20
 // IMATHLIB_IS_CONSTEVAL
 // IMATHLIB_ASSERT
@@ -1272,4 +1288,4 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
 // IMATHLIB_FAST_CTZ64
 // IMATHLIB_FAST_CTZ64
 
-#endif
+#endif  // IMATHLIB_IMATH_H
