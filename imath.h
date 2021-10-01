@@ -52,6 +52,12 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 #define IMATHLIB_IS_CONSTEVAL 0
 #endif
 
+#if __cpp_lib_is_constant_evaluated || !defined(_MSC_VER)
+#define IMATHLIB_CONSTEXPR20_OR_NOT_MSVC constexpr
+#else
+#define IMATHLIB_CONSTEXPR20_OR_NOT_MSVC inline
+#endif
+
 #if !defined(IMATHLIB_ASSERT)
 #if IMATHLIB_DEBUG
 #include <cassert>
@@ -140,6 +146,13 @@ constexpr const T& max(const T& a, const T& b)
     return (a < b) ? b : a;
 }
 
+template<class T>
+constexpr void simpleSwap(T& a, T& b) {
+    T temp = a;
+    a = b;
+    b = temp;
+}
+
 static constexpr uint32_t kDeBruijn32 =
     0b00000100011001010011101011011111u;
 static constexpr uint64_t kDeBruijn64 =
@@ -176,7 +189,8 @@ constexpr int countLeadingZeroesFallback(uint64_t n) {
     return 63 - detail::power_of_2_lookup_array_64[n];
 }
 
-IMATHLIB_CONSTEXPR20 int countLeadingZeroes(uint64_t n) {
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC
+int countLeadingZeroes(uint64_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return countLeadingZeroesFallback(n);
     }
@@ -203,6 +217,7 @@ IMATHLIB_CONSTEXPR20 int countLeadingZeroes(uint64_t n) {
 
 #elif __cplusplus >= 202002L
     return std::countl_zero(n);
+
 #else
     return countLeadingZeroesFallback(n);
 #endif
@@ -223,7 +238,8 @@ constexpr int countLeadingZeroesFallback(uint32_t n) {
     return 31 - detail::power_of_2_lookup_array_32[n];
 }
 
-IMATHLIB_CONSTEXPR20 int countLeadingZeroes(uint32_t n) {
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC
+int countLeadingZeroes(uint32_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return countLeadingZeroesFallback(n);
     }
@@ -260,7 +276,8 @@ IMATHLIB_MSC_WARNING(4146)
     return detail::power_of_2_lookup_array_64[n];
 }
 
-IMATHLIB_CONSTEXPR20 int countTrailingZeroes(uint64_t n) {
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC
+int countTrailingZeroes(uint64_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return countTrailingZeroesFallback(n);
     }
@@ -329,6 +346,7 @@ IMATHLIB_CONSTEXPR20 int countTrailingZeroes(uint32_t n) {
     unsigned long index = 0;
     (void)_BitScanForward(&index, n);
     return index;
+
 #else
     return countTrailingZeroesFallback(n);
 #endif
@@ -443,8 +461,9 @@ static constexpr uint32_t bases_prime_test_u64[128] {
  * */
 constexpr
 bool isSPRP(uint32_t n, uint32_t base) {
-    uint32_t d = n - 1, s = 0;
-    while ((d & 1) == 0) ++s, d >>= 1;
+    uint32_t d = n - 1;
+    uint32_t s = detail::countTrailingZeroes(d);
+    d >>= s;
     uint32_t cur = powmod(base, d, n);
     if (cur == 1) return true;
     for (uint32_t r = 0; r < s; r++) {
@@ -460,8 +479,9 @@ bool isSPRP(uint32_t n, uint32_t base) {
  * */
 IMATHLIB_CONSTEXPR20
 bool isSPRP(uint64_t n, uint64_t base) {
-    uint64_t d = n - 1, s = 0;
-    while ((d & 1) == 0) ++s, d >>= 1;
+    uint64_t d = n - 1;
+    uint32_t s = detail::countTrailingZeroes(d);
+    d >>= s;
     uint64_t cur = powmod(base, d, n);
     if (cur == 1) return true;
     for (uint32_t r = 0; r < s; r++) {
@@ -566,7 +586,7 @@ IMATHLIB_CONSTEXPR20 u128 mul64x64(uint64_t a, uint64_t b) {
 #endif
 }
 
-IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128& n, uint64_t mod) {
+IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
     IMATHLIB_ASSERT(0 < n.hi);
     IMATHLIB_ASSERT(0 < mod);
     IMATHLIB_ASSERT(n.hi < mod);
@@ -590,37 +610,24 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128& n, uint64_t mod) {
         higher_bits = (n.hi << bit_diff) |  (n.lo >> (64 - bit_diff));
         lower_bits = n.lo << bit_diff;
     }
-    // This carry flag is the 65th bit of the higher bits and will be ever set
-    // only for 64-bit-length mod.
-    bit_diff = 64 - bit_diff;
-    uint64_t carry = 0;
-    uint64_t mask =
-        static_cast<uint64_t>(
-            static_cast<int64_t>((mod - higher_bits - 1) || carry) >> 63);
-    higher_bits -= mod & mask;
+
+    if (higher_bits >= mod)
+        higher_bits -= mod;
+    bit_diff = 63 - bit_diff;
 
     #if defined(__clang__)
     #pragma nounroll
     #endif
     do {
-        // carry:higher_bits:lower_bits = (higher_bits:lower_bits)  << 1
-        carry = higher_bits & (1ull << 63);
+        // carry:higher_bits:lower_bits = (higher_bits:lower_bits) << 1
+        uint64_t carry = higher_bits & (1ull << 63);
         // shift left with carry
         higher_bits = (higher_bits << 1) | (lower_bits >> 63);
         // just shift, we don't care about the lower bits
         lower_bits = (lower_bits << 1);
 
-        // if (higher_bits >= mod || carry)
-        //     higher_bits -= mod;
-        // I can't make the compilers generate a CMOV reliably,
-        // so instead I convert sub result to uint64_t{-1} or 0
-        // using an arithmetic shift (SAR).
-        // A lot of implementation-defined behaviour here.
-        mask =
-            static_cast<uint64_t>(
-                static_cast<int64_t>((mod - higher_bits - 1) | carry) >> 63);
-
-        higher_bits -= mod & mask;
+        if (carry || higher_bits >= mod)
+            higher_bits -= mod;
     } while (bit_diff--);
 
     return higher_bits;
@@ -654,7 +661,7 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64(const u128& n, uint64_t mod) {
     return result;
 #else
     return mod128by64Fallback(n, mod);
-    #endif
+#endif
 }
 
 /**
@@ -700,7 +707,7 @@ constexpr uint64_t isqrt(uint64_t n) {
 } // namespace detail
 
 template <size_t SIZE, typename T>
-class PrimeArray  {
+class PrimeArray {
 public:
     static_assert(std::is_integral<T>::value, "PrimeArray must contain integers");
     static_assert(SIZE > 0, "Empty PrimeArray is not allowed");
@@ -749,8 +756,7 @@ private:
     }
 };
 
-//static constexpr PrimeArray<512, uint16_t> kSmallPrimes;
-uint16_t kSmallPrimes[] {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43};
+static constexpr PrimeArray<64, uint16_t> kSmallPrimes;
 
 constexpr bool isPrime(uint32_t n) {
     if (n == 2 || n == 3 || n == 5 || n == 7) return true;
@@ -868,7 +874,7 @@ private:
         // if not found, perform an insertion
         FactorU32 swapper = f;
         for (; i < size_; ++i) {
-            std::swap(swapper, factors_[i]);
+            detail::simpleSwap(swapper, factors_[i]);
         }
         factors_[size_++] = swapper;
     }
@@ -930,7 +936,7 @@ private:
         // if not found, perform an insertion
         FactorU64 swapper = f;
         for (; i < size_; ++i) {
-            std::swap(swapper, factors_[i]);
+            detail::simpleSwap(swapper, factors_[i]);
         }
         factors_[size_++] = swapper;
     }
@@ -1153,7 +1159,7 @@ IMATHLIB_CONSTEXPR20 uint32_t gcd(uint32_t a, uint32_t b) {
         IMATHLIB_ASSERT(a % 2 == 1);
         IMATHLIB_ASSERT(b % 2 == 1);
 
-        if (a < b) std::swap(a, b);
+        if (a < b) detail::simpleSwap(a, b);
         a -= b;
 
         if (a == 0) { break; }
@@ -1186,7 +1192,7 @@ IMATHLIB_CONSTEXPR20 uint64_t gcd(uint64_t a, uint64_t b) {
         IMATHLIB_ASSERT(a % 2 == 1);
         IMATHLIB_ASSERT(b % 2 == 1);
 
-        if (a < b) std::swap(a, b);
+        if (a < b) detail::simpleSwap(a, b);
         a -= b;
 
         if (a == 0) { break; }
@@ -1281,6 +1287,7 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
 // These are all the macros that can be defined by this header:
 // IMATHLIB_IMATH_H
 // IMATHLIB_CONSTEXPR20
+// IMATHLIB_CONSTEXPR20_OR_NOT_MSVC
 // IMATHLIB_IS_CONSTEVAL
 // IMATHLIB_ASSERT
 // IMATHLIB_FAST_CLZ32
