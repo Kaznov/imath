@@ -108,10 +108,10 @@ IMATHLIB_CONSTEXPR20 uint64_t mulmod(uint64_t a, uint64_t b, uint64_t mod);
 constexpr uint32_t powmod(uint32_t n, uint32_t pow, uint32_t mod);
 IMATHLIB_CONSTEXPR20 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod);
 
-IMATHLIB_CONSTEXPR20 uint32_t gcd(uint32_t a, uint32_t b);
-IMATHLIB_CONSTEXPR20 uint64_t gcd(uint64_t a, uint64_t b);
-IMATHLIB_CONSTEXPR20 uint32_t lcm(uint32_t a, uint32_t b);
-IMATHLIB_CONSTEXPR20 uint64_t lcm(uint64_t a, uint64_t b);
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint32_t gcd(uint32_t a, uint32_t b);
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint64_t gcd(uint64_t a, uint64_t b);
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint32_t lcm(uint32_t a, uint32_t b);
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint64_t lcm(uint64_t a, uint64_t b);
 
 constexpr uint32_t roundUpToMultipleOf(uint32_t n, uint32_t mul);
 constexpr uint64_t roundUpToMultipleOf(uint64_t n, uint64_t mul);
@@ -135,18 +135,18 @@ struct u128 {
 };
 
 // To avoid including entire <algorithm> header:
-template<class T>
+template<typename T>
 constexpr const T& min(const T& a, const T& b)
 {
     return (a < b) ? a : b;
 }
-template<class T>
+template<typename T>
 constexpr const T& max(const T& a, const T& b)
 {
     return (a < b) ? b : a;
 }
 
-template<class T>
+template<typename T>
 constexpr void simpleSwap(T& a, T& b) {
     T temp = a;
     a = b;
@@ -360,6 +360,35 @@ constexpr uint32_t gcdModuloRecursive(uint32_t a, uint32_t b) {
 constexpr uint64_t gcdModuloRecursive(uint64_t a, uint64_t b) {
     if (b == 0) return a;
     return gcdModuloRecursive(b, a % b);
+}
+
+template <typename T>
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC T gcdBinary(T a, T b) {
+    static_assert(std::is_integral<T>::value && std::is_unsigned<T>::value,
+                  "Implementation bug - GCD must operate on unsigned");
+
+    // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+    if (a == 0) return b;
+    if (b == 0) return a;
+
+    int a_tz = detail::countTrailingZeroes(a);
+    int b_tz = detail::countTrailingZeroes(b);
+    int common_tz = detail::min(a_tz, b_tz);
+    a >>= a_tz;
+    b >>= b_tz;
+
+    while (true) {
+        IMATHLIB_ASSERT(a % 2 == 1);
+        IMATHLIB_ASSERT(b % 2 == 1);
+
+        if (a < b) detail::simpleSwap(a, b);
+        a -= b;
+
+        if (a == 0) { break; }
+
+        a >>= detail::countTrailingZeroes(a);
+    }
+    return b << common_tz;
 }
 
 /**
@@ -1138,76 +1167,33 @@ IMATHLIB_CONSTEXPR20 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod) {
     return res;
 }
 
-IMATHLIB_CONSTEXPR20 uint32_t gcd(uint32_t a, uint32_t b) {
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint32_t gcd(uint32_t a, uint32_t b) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return detail::gcdModuloRecursive(a, b);
     }
 
 #if defined(IMATHLIB_FAST_CTZ32)
-    // use binary version
-    // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
-    if (a == 0) return b;
-    if (b == 0) return a;
-
-    int a_tz = detail::countTrailingZeroes(a);
-    int b_tz = detail::countTrailingZeroes(b);
-    int common_tz = detail::min(a_tz, b_tz);
-    a >>= a_tz;
-    b >>= b_tz;
-
-    while (true) {
-        IMATHLIB_ASSERT(a % 2 == 1);
-        IMATHLIB_ASSERT(b % 2 == 1);
-
-        if (a < b) detail::simpleSwap(a, b);
-        a -= b;
-
-        if (a == 0) { break; }
-
-        a >>= detail::countTrailingZeroes(a);
-    }
-    return b << common_tz;
+    return detail::gcdBinary(a, b);
 #else
     return detail::gcdModuloRecursive(a, b);
 #endif
 }
-IMATHLIB_CONSTEXPR20 uint64_t gcd(uint64_t a, uint64_t b) {
+
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint64_t gcd(uint64_t a, uint64_t b) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return detail::gcdModuloRecursive(a, b);
     }
 
 #if defined(IMATHLIB_FAST_CTZ64)
-    // use binary version
-    // https://en.wikipedia.org/wiki/Binary_GCD_algorithm
-    if (a == 0) return b;
-    if (b == 0) return a;
-
-    int a_tz = detail::countTrailingZeroes(a);
-    int b_tz = detail::countTrailingZeroes(b);
-    int common_tz = detail::min(a_tz, b_tz);
-    a >>= a_tz;
-    b >>= b_tz;
-
-    while (true) {
-        IMATHLIB_ASSERT(a % 2 == 1);
-        IMATHLIB_ASSERT(b % 2 == 1);
-
-        if (a < b) detail::simpleSwap(a, b);
-        a -= b;
-
-        if (a == 0) { break; }
-
-        a >>= detail::countTrailingZeroes(a);
-    }
-    return b << common_tz;
+    return detail::gcdBinary(a, b);
 #else
     return detail::gcdModuloRecursive(a, b);
 #endif
 }
-IMATHLIB_CONSTEXPR20 uint32_t lcm(uint32_t a, uint32_t b) {
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint32_t lcm(uint32_t a, uint32_t b) {
     return a / gcd (a, b) * b;
 }
-IMATHLIB_CONSTEXPR20 uint64_t lcm(uint64_t a, uint64_t b) {
+IMATHLIB_CONSTEXPR20_OR_NOT_MSVC uint64_t lcm(uint64_t a, uint64_t b) {
     return a / gcd (a, b) * b;
 }
 
@@ -1216,11 +1202,13 @@ constexpr uint32_t roundUpToMultipleOf(uint32_t n, uint32_t mul) {
     IMATHLIB_ASSERT((n + mul - 1) > n);
     return ((n + mul - 1) / mul) * mul;
 }
+
 constexpr uint64_t roundUpToMultipleOf(uint64_t n, uint64_t mul) {
     IMATHLIB_ASSERT(mul);
     IMATHLIB_ASSERT((n + mul - 1) > n);
     return ((n + mul - 1) / mul) * mul;
 }
+
 constexpr uint32_t roundDownToMultipleOf(uint32_t n, uint32_t mul) {
     IMATHLIB_ASSERT(mul);
     return n - n % mul;
