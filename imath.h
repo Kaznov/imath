@@ -641,8 +641,7 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
         lower_bits = n.lo << bit_diff;
     }
 
-    if (higher_bits >= mod)
-        higher_bits -= mod;
+    higher_bits -= mod * (higher_bits >= mod);
     bit_diff = 63 - bit_diff;
 
     #if defined(__clang__)
@@ -650,20 +649,19 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
     #endif
     do {
         // carry:higher_bits:lower_bits = (higher_bits:lower_bits) << 1
-        uint64_t carry = higher_bits & (1ull << 63);
+        uint64_t carry = higher_bits >> 63;
         // shift left with carry
         higher_bits = (higher_bits << 1) | (lower_bits >> 63);
         // just shift, we don't care about the lower bits
         lower_bits = (lower_bits << 1);
-
-        if (carry || higher_bits >= mod)
-            higher_bits -= mod;
+        // if (carry || higher_bits >= mod) higher_bits -= mod;
+        higher_bits -= mod * (carry | (higher_bits >= mod));
     } while (bit_diff--);
 
     return higher_bits;
 }
 
-IMATHLIB_CONSTEXPR20 uint64_t mod128by64(const u128& n, uint64_t mod) {
+IMATHLIB_CONSTEXPR20 uint64_t mod128by64(const u128 n, uint64_t mod) {
     IMATHLIB_ASSERT(0 < n.hi);
     IMATHLIB_ASSERT(0 < mod);
     IMATHLIB_ASSERT(n.hi < mod);
