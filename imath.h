@@ -489,7 +489,7 @@ static constexpr uint32_t bases_prime_test_u64[128] {
  * Miller-Rabin probabilistic test.
  * https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
  * */
-constexpr
+IMATHLIB_CONSTEXPR14
 bool isSPRP(uint32_t n, uint32_t base) {
     uint32_t d = n - 1;
     uint32_t s = detail::countTrailingZeroes(d);
@@ -531,7 +531,7 @@ constexpr uint32_t pollardRhoPoly(uint32_t x, uint32_t mod) {
  * The algorithm may fail for composite numbers.
  * Returned divisor does not have to be a prime number.
  * */
-constexpr
+IMATHLIB_CONSTEXPR14
 uint32_t pollardRhoFactorization(uint32_t n, uint32_t starting_value) {
     uint32_t turtle = starting_value;
     uint32_t hare = starting_value;
@@ -687,6 +687,12 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64(const u128 n, uint64_t mod) {
     uint64_t result;
     (void)_udiv128(n.hi, n.lo, mod, &result);
     return result;
+#elif defined(__SIZEOF_INT128__)
+    // not default, cause compilers can't inline it
+    __uint128_t p{n.hi};
+    p <<= 64;
+    p |= n.lo;
+    return static_cast<uint64_t>(p % mod);
 #else
     return mod128by64Fallback(n, mod);
 #endif
@@ -786,7 +792,7 @@ private:
 
 static constexpr PrimeArray<64, uint16_t> kSmallPrimes;
 
-constexpr bool isPrime(uint32_t n) {
+IMATHLIB_CONSTEXPR14 bool isPrime(uint32_t n) {
     if (n == 2 || n == 3 || n == 5 || n == 7) return true;
     if (n % 2 == 0 || n % 3 == 0 || n % 5 == 0 || n % 7 == 0) return false;
     if (n < 121) return (n > 1);
@@ -833,7 +839,7 @@ IMATHLIB_CONSTEXPR20 bool isPrime(uint64_t n) {
            detail::isSPRP(n, uint64_t{b4});
 }
 
-constexpr uint32_t nextPrimeAfter(uint32_t n) {
+IMATHLIB_CONSTEXPR14 uint32_t nextPrimeAfter(uint32_t n) {
     IMATHLIB_ASSERT(n < 4294967291u);
     if (n < 2) return 2;
     for (n = n + 1 + (n & 1); !isPrime(n); n += 2);
@@ -974,7 +980,7 @@ private:
     friend IMATHLIB_CONSTEXPR20 FactorizationResultU64 factorize(uint64_t n);
 };
 
-constexpr FactorizationResultU32 factorize(uint32_t n) {
+IMATHLIB_CONSTEXPR14 FactorizationResultU32 factorize(uint32_t n) {
     constexpr const size_t kSmallPrimesTested = 16;
     static_assert(kSmallPrimesTested >= 4,
                   "2, 3, 5, 7 are used in primality test, so we need to test them here too");
@@ -1037,6 +1043,7 @@ constexpr FactorizationResultU32 factorize(uint32_t n) {
 
     return result;
 }
+
 IMATHLIB_CONSTEXPR20 FactorizationResultU64 factorize(uint64_t n) {
     constexpr const size_t kSmallPrimesTested = 16;
     static_assert(kSmallPrimesTested >= 4,
