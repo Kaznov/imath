@@ -278,6 +278,49 @@ constexpr uint64_t bigprimesu64[] {
     static_cast<uint64_t>(-363)
 };
 
+#if IMATHLIB_HAS_CONSTEXPR14
+static_assert(imath::isPrime(0u) == false);
+static_assert(imath::isPrime(1u) == false);
+static_assert(imath::isPrime(2u) == true);
+static_assert(imath::isPrime(3u) == true);
+static_assert(imath::isPrime(4u) == false);
+static_assert(imath::isPrime(5u) == true);
+static_assert(imath::isPrime(2213431729u) == false);
+static_assert(imath::isPrime(4294967291u) == true);
+#endif
+
+#if IMATHLIB_HAS_CONSTEXPR20
+static_assert(imath::isPrime(10001538279258594301ull) == false);
+static_assert(imath::isPrime(static_cast<uint64_t>(-59)) == true);
+#endif
+
+#if __cpp_lib_ranges >= 201911L && IMATHLIB_HAS_CONSTEXPR20
+#include <algorithm>
+static_assert(std::ranges::all_of(
+                small_is_prime_table,
+                [](auto&& p) { return imath::isPrime(p.first) == p.second; } ));
+
+static_assert(std::ranges::none_of(
+                pspsu32, [](auto&& n) { return imath::isPrime(n); } ));
+
+static_assert(std::ranges::none_of(
+                strpspsu32, [](auto&& n) { return imath::isPrime(n); } ));
+
+static_assert(std::ranges::none_of(
+                strpspsu64, [](auto&& n) { return imath::isPrime(n); } ));
+
+static_assert(std::ranges::none_of(
+                vstrpspsu64, [](auto&& n) { return imath::isPrime(n); } ));
+
+static_assert(std::ranges::all_of(
+                bigprimesu32, [](auto&& n) { return imath::isPrime(n); } ));
+
+static_assert(std::ranges::all_of(
+                bigprimesu64, [](auto&& n) { return imath::isPrime(n); } ));
+
+#endif
+
+
 TEST_CASE( "Correct prime test for low numbers u32", "[isPrime32]" ) {
     for (auto&[n, is_prime] : small_is_prime_table) {
         INFO("n = " << n);

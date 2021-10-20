@@ -46,6 +46,7 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 
 #if __cpp_lib_is_constant_evaluated
 #define IMATHLIB_CONSTEXPR20 constexpr
+#define IMATHLIB_HAS_CONSTEXPR20 1
 #define IMATHLIB_IS_CONSTEVAL std::is_constant_evaluated()
 #else
 #define IMATHLIB_CONSTEXPR20 inline
@@ -58,6 +59,7 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 // since intrinsics in MSVC are not constexpr
 // and before C++20 there is no way to "if" it out.
 #define IMATHLIB_CONSTEXPR14 constexpr
+#define IMATHLIB_HAS_CONSTEXPR14 1
 #else
 #define IMATHLIB_CONSTEXPR14 inline
 #endif
