@@ -796,7 +796,7 @@ IMATHLIB_CONSTEXPR14 bool isPrime(uint32_t n) {
     if (n == 2 || n == 3 || n == 5 || n == 7) return true;
     if (n % 2 == 0 || n % 3 == 0 || n % 5 == 0 || n % 7 == 0) return false;
     if (n < 121) return (n > 1);
-    uint32_t h = n;
+    uint64_t h = n;  // important - 64 bits
     h = ((h >> 16) ^ h) * 0x979bc64f;
     h = ((h >> 16) ^ h) * 0x979bc64f;
     h = ((h >> 16) ^ h) & 255;
@@ -805,10 +805,7 @@ IMATHLIB_CONSTEXPR14 bool isPrime(uint32_t n) {
 
 IMATHLIB_CONSTEXPR20 bool isPrime(uint64_t n) {
     if (n < (1ull << 32)) return isPrime(static_cast<uint32_t>(n));
-
-    if (n == 2 || n == 3 || n == 5 || n == 7) return true;
     if (n % 2 == 0 || n % 3 == 0 || n % 5 == 0 || n % 7 == 0) return false;
-    if (n < 121) return (n > 1);
 
     if (!detail::isSPRP(n, 2)) return false;
 
