@@ -168,6 +168,13 @@ constexpr void simpleSwap(T& a, T& b) {
     b = temp;
 }
 
+template<typename T>
+constexpr void simpleSwapIf(T& a, T& b, bool cond) {
+    T temp = a;
+    a = cond ? b : a;
+    b = cond ? temp : b;
+}
+
 static constexpr uint32_t kDeBruijn32 =
     0b00000100011001010011101011011111u;
 static constexpr uint64_t kDeBruijn64 =
@@ -383,23 +390,25 @@ IMATHLIB_CONSTEXPR14 T gcdBinary(T a, T b) {
     if (a == 0) return b;
     if (b == 0) return a;
 
-    int a_tz = detail::countTrailingZeroes(a);
-    int b_tz = detail::countTrailingZeroes(b);
-    int common_tz = detail::min(a_tz, b_tz);
-    a >>= a_tz;
-    b >>= b_tz;
+    int common_tz = detail::countTrailingZeroes(a | b);
+    b >>= common_tz;
 
-    while (true) {
-        IMATHLIB_ASSUME(a % 2 == 1);
-        IMATHLIB_ASSUME(b % 2 == 1);
-
-        if (a < b) detail::simpleSwap(a, b);
-        a -= b;
-
-        if (a == 0) { break; }
-
+    // Do not change it to do-while loop! Clang gets weirdly confused
+    // and checks for 0 twice, conditionaly moving 32/64 to eax/rax
+    // for bsf. It seems to be a bug, and using while loop
+    // doesn't change codegen for other compilers.
+    while (a != 0) {
+        // You say it doesn't make any sense to put this here.
+        // And I would agree, but otherwise MSVC checks for 0 twice,
+        // and performs an extra check for architeture each loop turn...
+        // Reported as a bug 10-2021.
+        IMATHLIB_ASSUME(a != 0);
         a >>= detail::countTrailingZeroes(a);
+        // why not if() swap(); ? cause GCC can't generate CMOVs then
+        detail::simpleSwapIf(a, b, a < b);
+        a -= b;
     }
+
     return b << common_tz;
 }
 
