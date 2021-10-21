@@ -69,17 +69,26 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 #include <cassert>
 #define IMATHLIB_ASSERT(...) assert(__VA_ARGS__)
 #else
-#if defined(__GNUG__) || defined(__clang__)
-#define IMATHLIB_ASSERT(...) \
-    do { if(!(__VA_ARGS__)) __builtin_unreachable(); } while (false)
-#elif defined(_MSC_VER)
-#define IMATHLIB_ASSERT(...) \
-    do { __assume(__VA_ARGS__); } while (false)
-#else
 #define IMATHLIB_ASSERT(...) do {} while(false)
 #endif
-#endif
 #endif  // !defined(IMATHLIB_ASSERT)
+
+#if !defined(IMATHLIB_ASSUME)
+#if IMATHLIB_DEBUG
+#include <cassert>
+#define IMATHLIB_ASSUME(...) assert(__VA_ARGS__)
+#else
+#if defined(__GNUG__) || defined(__clang__)
+#define IMATHLIB_ASSUME(...) \
+    do { if(!(__VA_ARGS__)) __builtin_unreachable(); } while (false)
+#elif defined(_MSC_VER)
+#define IMATHLIB_ASSUME(...) \
+    do { __assume(__VA_ARGS__); } while (false)
+#else
+#define IMATHLIB_ASSUME(...) do {} while(false)
+#endif
+#endif
+#endif  // !defined(IMATHLIB_ASSUME)
 
 #ifdef _MSC_VER
 #define IMATHLIB_MSC_WARNING(id) __pragma(warning(suppress : id))
@@ -381,8 +390,8 @@ IMATHLIB_CONSTEXPR14 T gcdBinary(T a, T b) {
     b >>= b_tz;
 
     while (true) {
-        IMATHLIB_ASSERT(a % 2 == 1);
-        IMATHLIB_ASSERT(b % 2 == 1);
+        IMATHLIB_ASSUME(a % 2 == 1);
+        IMATHLIB_ASSUME(b % 2 == 1);
 
         if (a < b) detail::simpleSwap(a, b);
         a -= b;
@@ -619,9 +628,9 @@ IMATHLIB_CONSTEXPR20 u128 mul64x64(uint64_t a, uint64_t b) {
 }
 
 IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
-    IMATHLIB_ASSERT(0 < n.hi);
-    IMATHLIB_ASSERT(0 < mod);
-    IMATHLIB_ASSERT(n.hi < mod);
+    IMATHLIB_ASSUME(0 < n.hi);
+    IMATHLIB_ASSUME(0 < mod);
+    IMATHLIB_ASSUME(n.hi < mod);
 
     // difference in bit length
     int bit_diff = detail::countLeadingZeroes(n.hi) -
@@ -664,9 +673,9 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
 }
 
 IMATHLIB_CONSTEXPR20 uint64_t mod128by64(const u128 n, uint64_t mod) {
-    IMATHLIB_ASSERT(0 < n.hi);
-    IMATHLIB_ASSERT(0 < mod);
-    IMATHLIB_ASSERT(n.hi < mod);
+    IMATHLIB_ASSUME(0 < n.hi);
+    IMATHLIB_ASSUME(0 < mod);
+    IMATHLIB_ASSUME(n.hi < mod);
     if (IMATHLIB_IS_CONSTEVAL) {
         return mod128by64Fallback(n, mod);
     }
@@ -1283,8 +1292,11 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
 // IMATHLIB_IMATH_H
 // IMATHLIB_CONSTEXPR14
 // IMATHLIB_CONSTEXPR20
+// IMATHLIB_HAS_CONSTEXPR14
+// IMATHLIB_HAS_CONSTEXPR20
 // IMATHLIB_IS_CONSTEVAL
 // IMATHLIB_ASSERT
+// IMATHLIB_ASSUME
 // IMATHLIB_FAST_CLZ32
 // IMATHLIB_FAST_CLZ64
 // IMATHLIB_FAST_CTZ64
