@@ -1,0 +1,18 @@
+# VS Code configurations
+.vscode/
+
+# executables
+*.exe
+
+# These files are too big to be included in the repo:
+
+# used for extensive testing and test generation
+# downloads from http://www.cecm.sfu.ca/Pseudoprimes/
+
+psps-below-2-to-64.txt
+annotated-psps-below-2-to-64.txt
+factored-psps-below-2-to-64.txt
+
+# used for extensive testing and hash generation
+
+primes-below-2-to-32.txt
