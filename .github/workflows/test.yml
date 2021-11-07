@@ -1,0 +1,88 @@
+name: Test
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Test on ${{ matrix.config.name }} C++${{ matrix.standard }}
+    runs-on: ${{ matrix.config.os }}
+    env:
+      CC: ${{ matrix.config.cc }}
+      CXX: ${{ matrix.config.cxx }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Windows MSVC",
+            os: windows-latest,
+            cc: "", cxx: "",
+          }
+        - {
+            name: "Ubuntu GCC",
+            os: ubuntu-latest,
+            cc: "gcc", cxx: "g++"
+          }
+        - {
+            name: "Ubuntu Clang",
+            os: ubuntu-latest,
+            cc: "clang", cxx: "clang++"
+          }
+        standard: [14, 17, 20]
+
+    steps:
+      - name: Show job info
+        run: |
+          echo "The job was automatically triggered by a ${{ github.event_name }} event."
+          echo "This job is now running on a ${{ runner.os }} server."
+          echo "Current branch is ${{ github.ref }}."
+
+      - name: Check out repository code
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install dependencies on windows
+        if: startsWith(matrix.config.os, 'Windows')
+        run: |
+          choco install ninja cmake
+          ninja --version
+          cmake --version
+          gcc --version
+
+      - name: Install dependencies on ubuntu
+        if: startsWith(matrix.config.name, 'Ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install ninja-build cmake
+          ninja --version
+          cmake --version
+          gcc --version
+          clang --version
+
+      - run: ls
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          mkdir build
+          cmake \
+            -S . \
+            -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_STANDARD=${{ matrix.standard }} \
+            -DBUILD_TESTS=ON
+
+      - name: Build
+        shell: bash
+        run: |
+          cmake --build build \
+            --config Debug \
+            --target imath_lib_tests
+
+      - name: Test
+        shell: bash
+        run: |
+          cd build
+          ctest \
+            -C Debug \
+            --output-on-failure
