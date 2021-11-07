@@ -1,7 +1,7 @@
 # imath
 ![example workflow](https://github.com/kaznov/imath/actions/workflows/demo_action.yml/badge.svg)
---------
-THIS LIBRARY IS IN A VERY EARLY PHASE OF DEVELOPMENT. DO NOT USE.
+
+THIS LIBRARY IS IN A VERY EARLY PHASE OF DEVELOPMENT. Use with caution.
 
 **imath** is an open-source C++14 library providing a set of fast operations on 32-bit and 64-bit integers.
 
