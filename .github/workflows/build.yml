@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    name: ${{ matrix.config.name }} C++${{ matrix.config.standard }}
+    name: ${{ matrix.config.name }} C++${{ matrix.standard }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
@@ -33,9 +33,11 @@ jobs:
         standard: [14, 17, 20]
 
     steps:
-      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "This job is now running on a ${{ runner.os }} server."
-      - run: echo "Current branch is ${{ github.ref }}."
+      - name: Show job info
+        run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+        run: echo "This job is now running on a ${{ runner.os }} server."
+        run: echo "Current branch is ${{ github.ref }}."
+
       - name: Check out repository code
         uses: actions/checkout@v2
         with:
@@ -48,7 +50,6 @@ jobs:
           ninja --version
           cmake --version
           gcc --version
-          cl
 
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.config.name, 'Ubuntu')
@@ -59,5 +60,16 @@ jobs:
           cmake --version
           gcc --version
           clang --version
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          mkdir build
+          cmake \
+            -S . \
+            -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_STANDARD=${{ matrix.standard }} \
+
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
