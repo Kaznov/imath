@@ -13,6 +13,7 @@ target_link_libraries(
     imath_lib_tests
     PRIVATE Catch2::Catch2WithMain project_warnings)
 
+if (TARGET imath_lib_tests)
 catch_discover_tests(
     imath_lib_tests
     TEST_PREFIX
@@ -25,6 +26,7 @@ catch_discover_tests(
     "unittests."
     OUTPUT_SUFFIX
     .xml)
+endif()
 
 add_executable(imath_lib_tests_constexpr
     isPrime.constexpr.cpp)
@@ -37,6 +39,7 @@ if(MSVC)
 target_compile_options(imath_lib_tests_constexpr PRIVATE  /constexpr:steps100000000)
 endif()
 
+if (TARGET imath_lib_tests_constexpr)
 catch_discover_tests(
     imath_lib_tests_constexpr
     TEST_PREFIX
@@ -49,3 +52,4 @@ catch_discover_tests(
     "constexpr."
     OUTPUT_SUFFIX
     .xml)
+endif()

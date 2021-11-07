@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    name: ${{ matrix.config.name }} C++${{ matrix.standard }}
+    name: Build on ${{ matrix.config.name }} C++${{ matrix.standard }}
     runs-on: ${{ matrix.config.os }}
     env:
       CC: ${{ matrix.config.cc }}
@@ -13,17 +13,17 @@ jobs:
       matrix:
         config:
         - {
-            name: "Windows Latest MSVC",
+            name: "Windows MSVC",
             os: windows-latest,
             cc: "", cxx: "",
           }
         - {
-            name: "Ubuntu Latest GCC",
+            name: "Ubuntu GCC",
             os: ubuntu-latest,
             cc: "gcc", cxx: "g++"
           }
         - {
-            name: "Ubuntu Latest Clang",
+            name: "Ubuntu Clang",
             os: ubuntu-latest,
             cc: "clang", cxx: "clang++"
           }
