@@ -34,9 +34,10 @@ jobs:
 
     steps:
       - name: Show job info
-        run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
-        run: echo "This job is now running on a ${{ runner.os }} server."
-        run: echo "Current branch is ${{ github.ref }}."
+        run: |
+          echo "The job was automatically triggered by a ${{ github.event_name }} event."
+          echo "This job is now running on a ${{ runner.os }} server."
+          echo "Current branch is ${{ github.ref }}."
 
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -69,7 +70,7 @@ jobs:
             -S . \
             -B build \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_STANDARD=${{ matrix.standard }} \
+            -DCMAKE_CXX_STANDARD=${{ matrix.standard }}
 
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
