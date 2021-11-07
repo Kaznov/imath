@@ -145,6 +145,6 @@ static_assert(imath::isPrime(XXPRIME64_5), "");
 #if IMATHLIB_HAS_CONSTEXPR20
 // In C++20 everything is constexpr!
 
-static_assert(imath::isSquare(1'000'000'007ull * 1'000'000'007ull));
+static_assert(imath::isPerfectSquare(1'000'000'007ull * 1'000'000'007ull));
 
 #endif
