@@ -15,12 +15,7 @@ jobs:
         - {
             name: "Windows Latest MSVC",
             os: windows-latest,
-            cc: "cl", cxx: "cl",
-          }
-        - {
-            name: "Windows Latest MinGW",
-            os: windows-latest,
-            cc: "gcc", cxx: "g++"
+            cc: "", cxx: "",
           }
         - {
             name: "Ubuntu Latest GCC",
@@ -74,7 +69,12 @@ jobs:
             -S . \
             -B build \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_STANDARD=${{ matrix.standard }}
+            -DCMAKE_CXX_STANDARD=${{ matrix.standard }} \
+            -DBUILD_TESTS=OFF
 
-
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+      - name: Build
+        shell: bash
+        run: |
+          cmake --build build \
+            --config Debug \
+            --target imath_lib_example

@@ -9,7 +9,6 @@ add_executable(imath_lib_tests
     mod128by64.runtime.cpp
     mul64by64.runtime.cpp)
 target_include_directories(imath_lib_tests PRIVATE ${CMAKE_SOURCE_DIR})
-set_property(TARGET imath_lib_tests PROPERTY CXX_STANDARD 14)
 target_link_libraries(
     imath_lib_tests
     PRIVATE Catch2::Catch2WithMain project_warnings)
