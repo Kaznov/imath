@@ -5,6 +5,9 @@ jobs:
   build:
     name: ${{ matrix.config.name }} C++${{ matrix.standard }}
     runs-on: ${{ matrix.config.os }}
+    env:
+      CC: ${{ matrix.config.cc }}
+      CXX: ${{ matrix.config.cxx }}
     strategy:
       fail-fast: false
       matrix:
@@ -13,7 +16,6 @@ jobs:
             name: "Windows Latest MSVC",
             os: windows-latest,
             cc: "cl", cxx: "cl",
-            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
           }
         - {
             name: "Windows Latest MinGW",
