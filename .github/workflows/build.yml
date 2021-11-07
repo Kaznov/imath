@@ -1,0 +1,61 @@
+name: Build
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Windows Latest MSVC",
+            os: windows-latest,
+            cc: "cl", cxx: "cl",
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+          }
+        - {
+            name: "Windows Latest MinGW",
+            os: windows-latest,
+            cc: "gcc", cxx: "g++"
+          }
+        - {
+            name: "Ubuntu Latest GCC",
+            os: ubuntu-latest,
+            cc: "gcc", cxx: "g++"
+          }
+        - {
+            name: "Ubuntu Latest Clang",
+            os: ubuntu-latest,
+            cc: "clang", cxx: "clang++"
+          }
+        standard: [14, 17, 20]
+
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "This job is now running on a ${{ runner.os }} server."
+      - run: echo "Current branch is ${{ github.ref }}."
+      - name: Check out repository code
+        uses: actions/checkout@v2
+        with:
+          sumbodules: true
+
+      - name: Install dependencies on windows
+        if: startsWith(matrix.config.os, 'Windows')
+        run: |
+          choco install ninja cmake
+          ninja --version
+          cmake --version
+
+      - name: Install dependencies on ubuntu
+        if: startsWith(matrix.config.name, 'Ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install ninja-build cmake
+          ninja --version
+          cmake --version
+          gcc --version
+          clang --version
+
+      - run: echo "🍏 This job's status is ${{ job.status }}."
