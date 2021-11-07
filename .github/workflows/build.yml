@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    name: ${{ matrix.config.name }}
+    name: ${{ matrix.config.name }} C++${{ matrix.config.standard }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
@@ -39,7 +39,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v2
         with:
-          sumbodules: true
+          submodules: true
 
       - name: Install dependencies on windows
         if: startsWith(matrix.config.os, 'Windows')
@@ -47,6 +47,8 @@ jobs:
           choco install ninja cmake
           ninja --version
           cmake --version
+          gcc --version
+          cl
 
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.config.name, 'Ubuntu')
