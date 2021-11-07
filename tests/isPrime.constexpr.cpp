@@ -2,6 +2,7 @@
 #include <utility>
 
 #include "imath.h"
+#include "catch2/catch_test_macros.hpp"
 
 constexpr std::pair<uint32_t, bool> small_is_prime_table[]{
     {0, false},
@@ -279,72 +280,74 @@ constexpr uint64_t bigprimesu64[] {
 };
 
 #if IMATHLIB_HAS_CONSTEXPR_INTR
-static_assert(imath::isPrime(0u) == false);
-static_assert(imath::isPrime(1u) == false);
-static_assert(imath::isPrime(2u) == true);
-static_assert(imath::isPrime(3u) == true);
-static_assert(imath::isPrime(4u) == false);
-static_assert(imath::isPrime(5u) == true);
-static_assert(imath::isPrime(2213431729u) == false);
-static_assert(imath::isPrime(4294967291u) == true);
+TEST_CASE( "Correct constexpr prime test for u32", "[isPrime32constexpr]" ) {
+    STATIC_REQUIRE(imath::isPrime(0u) == false);
+    STATIC_REQUIRE(imath::isPrime(1u) == false);
+    STATIC_REQUIRE(imath::isPrime(2u) == true);
+    STATIC_REQUIRE(imath::isPrime(3u) == true);
+    STATIC_REQUIRE(imath::isPrime(4u) == false);
+    STATIC_REQUIRE(imath::isPrime(5u) == true);
+    STATIC_REQUIRE(imath::isPrime(2213431729u) == false);
+    STATIC_REQUIRE(imath::isPrime(4294967291u) == true);
 
-// set of xxhash primes
-static_assert(imath::isPrime(2654435761U));
-static_assert(imath::isPrime(2246822519U));
-static_assert(imath::isPrime(3266489917U));
-static_assert(imath::isPrime( 668265263U));
-static_assert(imath::isPrime( 374761393U));
+    // set of xxhash primes
+    STATIC_REQUIRE(imath::isPrime(2654435761U));
+    STATIC_REQUIRE(imath::isPrime(2246822519U));
+    STATIC_REQUIRE(imath::isPrime(3266489917U));
+    STATIC_REQUIRE(imath::isPrime( 668265263U));
+    STATIC_REQUIRE(imath::isPrime( 374761393U));
+}
 #endif
 
 #if IMATHLIB_HAS_CONSTEXPR_X64
-static_assert(imath::isPrime(10001538279258594301ull) == false);
+TEST_CASE( "Correct constexpr prime test for u64", "[isPrime64constexpr]" ) {
 
-// biggest 64 bit prime
-static_assert(imath::isPrime(static_cast<uint64_t>(-59)) == true);
+    STATIC_REQUIRE(imath::isPrime(10001538279258594301ull) == false);
 
-// set of xxhash primes
-static_assert(imath::isPrime(11400714785074694791ULL));
-static_assert(imath::isPrime(14029467366897019727ULL));
-static_assert(imath::isPrime( 1609587929392839161ULL));
-static_assert(imath::isPrime( 9650029242287828579ULL));
-static_assert(imath::isPrime( 2870177450012600261ULL));
+    // biggest 64 bit prime
+    STATIC_REQUIRE(imath::isPrime(static_cast<uint64_t>(-59)) == true);
 
+    // set of xxhash primes
+    STATIC_REQUIRE(imath::isPrime(11400714785074694791ULL));
+    STATIC_REQUIRE(imath::isPrime(14029467366897019727ULL));
+    STATIC_REQUIRE(imath::isPrime( 1609587929392839161ULL));
+    STATIC_REQUIRE(imath::isPrime( 9650029242287828579ULL));
+    STATIC_REQUIRE(imath::isPrime( 2870177450012600261ULL));
+}
 #endif
 
 #if __cpp_lib_ranges >= 201911L && IMATHLIB_HAS_CONSTEXPR20
 #include <algorithm>
-#include <ranges>
 
-#if defined(__SIZEOF_INT128__)
-constexpr int take_limit = 256;
-#else
-// Without u128 support we hit the limit of constexpr steps,
-// so check only a few testcases
-constexpr int take_limit = 32;
-#endif
+TEST_CASE( "Correct constexpr prime test for all problematic cases",
+           "[isPrime64constexpr]" ) {
+    constexpr auto is_prime =
+        [](auto&& n) constexpr { return imath::isPrime(n); };
+    STATIC_REQUIRE(std::ranges::all_of(
+                    small_is_prime_table,
+                    [](auto&& p) { return imath::isPrime(p.first) == p.second; } ));
 
-static_assert(std::ranges::all_of(
-                small_is_prime_table,
-                [](auto&& p) { return imath::isPrime(p.first) == p.second; } ));
+    STATIC_REQUIRE(std::ranges::none_of(
+                    pspsu32, is_prime));
 
-static_assert(std::ranges::none_of(
-                pspsu32, [](auto&& n) { return imath::isPrime(n); } ));
+    STATIC_REQUIRE(std::ranges::none_of(
+                    strpspsu32, is_prime));
 
-static_assert(std::ranges::none_of(
-                strpspsu32, [](auto&& n) { return imath::isPrime(n); } ));
+    STATIC_REQUIRE(std::ranges::none_of(
+                    strpspsu64,
+                    is_prime));
 
-static_assert(std::ranges::none_of(
-                strpspsu64 | std::views::take(take_limit),
-                [](auto&& n) { return imath::isPrime(n); } ));
+    STATIC_REQUIRE(std::ranges::none_of(
+                    vstrpspsu64,
+                    is_prime));
 
-static_assert(std::ranges::none_of(
-                vstrpspsu64 | std::views::take(take_limit),
-                [](auto&& n) { return imath::isPrime(n); } ));
+    STATIC_REQUIRE(std::ranges::all_of(
+                    bigprimesu32,
+                    is_prime));
 
-static_assert(std::ranges::all_of(
-                bigprimesu32, [](auto&& n) { return imath::isPrime(n); } ));
-
-static_assert(std::ranges::all_of(
-                bigprimesu64, [](auto&& n) { return imath::isPrime(n); } ));
+    STATIC_REQUIRE(std::ranges::all_of(
+                    bigprimesu64,
+                    is_prime));
+}
 
 #endif

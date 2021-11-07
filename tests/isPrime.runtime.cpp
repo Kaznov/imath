@@ -1,7 +1,8 @@
+#include <cstdint>
+#include <utility>
+
 #include "imath.h"
 #include "catch2/catch_test_macros.hpp"
-
-#include <utility>
 
 constexpr std::pair<uint32_t, bool> small_is_prime_table[]{
     {0, false},

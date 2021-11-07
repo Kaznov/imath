@@ -530,11 +530,11 @@ static constexpr uint32_t bases_prime_test_u64[128] {
 IMATHLIB_CONSTEXPR_INTR
 bool isSPRP(uint32_t n, uint32_t base) {
     uint32_t d = n - 1;
-    uint32_t s = countTrailingZeroes(d);
+    int s = countTrailingZeroes(d);
     d >>= s;
     uint32_t cur = powmod(base, d, n);
     if (cur == 1) return true;
-    for (uint32_t r = 0; r < s; r++) {
+    for (int r = 0; r < s; r++) {
         if (cur == n - 1) return true;
         cur = mulmod(cur, cur, n);
     }
@@ -548,11 +548,11 @@ bool isSPRP(uint32_t n, uint32_t base) {
 IMATHLIB_CONSTEXPR_X64
 bool isSPRP(uint64_t n, uint64_t base) {
     uint64_t d = n - 1;
-    uint32_t s = countTrailingZeroes(d);
+    int s = countTrailingZeroes(d);
     d >>= s;
     uint64_t cur = powmod(base, d, n);
     if (cur == 1) return true;
-    for (uint32_t r = 0; r < s; r++) {
+    for (int r = 0; r < s; r++) {
         if (cur == n - 1) return true;
         cur = mulmod(cur, cur, n);
     }
@@ -611,9 +611,9 @@ uint64_t pollardRhoFactorization(uint64_t n, uint64_t starting_value) {
 }
 
 constexpr u128 mul64x64Fallback(uint64_t a, uint64_t b) {
-    uint32_t ahi = a >> 32;
+    uint32_t ahi = static_cast<uint32_t>(a >> 32);
     uint32_t alo = static_cast<uint32_t>(a);
-    uint32_t bhi = b >> 32;
+    uint32_t bhi = static_cast<uint32_t>(b >> 32);
     uint32_t blo = static_cast<uint32_t>(b);
 
     // B = 2 ^ 32
@@ -1184,7 +1184,7 @@ constexpr uint64_t pow(uint64_t n, uint64_t pow) {
 
 constexpr uint32_t mulmod(uint32_t a, uint32_t b, uint32_t mod) {
     IMATHLIB_ASSERT(mod > 0);
-    return ((uint64_t)a * b) % mod;
+    return static_cast<uint32_t>((uint64_t{a} * b) % mod);
 }
 IMATHLIB_CONSTEXPR_X64 uint64_t mulmod(uint64_t a, uint64_t b, uint64_t mod) {
     IMATHLIB_ASSERT(mod > 0);

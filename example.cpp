@@ -53,7 +53,7 @@ void factorNumber(u64 n) {
     std::cout << n << " = ";
     std::vector<u64> factors_repeated;
     for (auto&& factor : factors)
-        for (int i = 0; i < factor.power; ++i)
+        for (size_t i = 0; i < factor.power; ++i)
             factors_repeated.push_back(factor.prime);
 
     for (size_t i = 0; i < factors_repeated.size() - 1; ++i) {
@@ -80,20 +80,20 @@ void checkSquareness(u64 n) {
 
 void powerModulo2to32(u64 n) {
     std::cout << n << "^" << 111 << " ≡ "
-              << imath::pow((u32)n, (u32)111)
+              << imath::pow(static_cast<u32>(n), static_cast<u32>(111))
               << " (mod 2^32)\n";
 }
 
 void powerModulo2to64(u64 n) {
     std::cout << n << "^" << 111 << " ≡ "
-              << imath::pow((u64)n, (u64)111)
+              << imath::pow(u64{n}, u64{111})
               << " (mod 2^64)\n";
 }
 
 void powerModuloSomePrime(u64 n) {
     u64 mod = 1000000007;
     std::cout << n << "^" << 1111111 << " ≡ "
-              << imath::powmod(n, (u64)1111111, mod)
+              << imath::powmod(n, u64{1111111}, mod)
               << " (mod " << mod <<")\n";
 }
 
