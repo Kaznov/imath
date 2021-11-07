@@ -1,7 +1,9 @@
 # imath
-![example workflow](https://github.com/kaznov/imath/actions/workflows/demo_action.yml/badge.svg)
+[![Build](https://github.com/kaznov/imath/actions/workflows/build.yml/badge.svg)](https://github.com/kaznov/imath/actions/workflows/build.yml)
+[![Test](https://github.com/kaznov/imath/actions/workflows/test.yml/badge.svg)](https://github.com/kaznov/imath/actions/workflows/test.yml)
+[![Test constexpr](https://github.com/kaznov/imath/actions/workflows/test_constexpr.yml/badge.svg)](https://github.com/kaznov/imath/actions/workflows/test_constexpr.yml)
 
-THIS LIBRARY IS IN A VERY EARLY PHASE OF DEVELOPMENT. Use with caution.
+THIS LIBRARY IS IN AN EARLY STAGE OF DEVELOPMENT. Use with caution.
 
 **imath** is an open-source C++14 library providing a set of fast operations on 32-bit and 64-bit integers.
 
@@ -87,7 +89,7 @@ int main() {
     std::cout << number << " rounded up to thousands is "
               << imath::roundUpToMultipleOf(number, 1000) << "\n";
     std::cout << number << " rounded down to thousands is "
-              << imath::roundDownToMultipleOf(number, 1000) << "\n"; 
+              << imath::roundDownToMultipleOf(number, 1000) << "\n";
 }
 ```
 
