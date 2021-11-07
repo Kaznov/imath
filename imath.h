@@ -35,7 +35,7 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
               "Integers must be 2's complement and static_cast uint->int "
               "must be well defined as congruent mod to 2^(8 * sizeof(...))");
 
-#if __cplusplus >= 202002L
+#if IMATHLIB_CPP_VER >= 202002L
 #include <bit>
 #endif
 
@@ -53,16 +53,30 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 #define IMATHLIB_IS_CONSTEVAL 0
 #endif
 
-#if __cpp_lib_is_constant_evaluated || !defined(_MSC_VER)
-// This one is annoying
-// It is "constexpr for c++14 but not for MSVC",
-// since intrinsics in MSVC are not constexpr
-// and before C++20 there is no way to "if" it out.
-#define IMATHLIB_CONSTEXPR14 constexpr
-#define IMATHLIB_HAS_CONSTEXPR14 1
+#if IMATHLIB_HAS_CONSTEXPR20 || !defined(_MSC_VER)
+// Support for intrinsics in constexpr or C++20 is_consteval
+#define IMATHLIB_CONSTEXPR_INTR constexpr
+#define IMATHLIB_HAS_CONSTEXPR_INTR 1
 #else
-#define IMATHLIB_CONSTEXPR14 inline
+#define IMATHLIB_CONSTEXPR_INTR inline
 #endif
+
+// In case u128 % u128 provided with your standard library is slow,
+// (like in very old libc++), you may want to change this flag to 0.
+// It will disable a lot of constexpr, but will use inline assembly for
+// 128bit % 64bit modulo.
+#define IMATHLIB_FAST_LIBRARY_MODULO 1
+
+#if IMATHLIB_HAS_CONSTEXPR20 || \
+    IMATHLIB_HAS_CONSTEXPR_INTR && defined(__SIZEOF_INT128__) &&\
+    IMATHLIB_FAST_LIBRARY_MODULO
+// Constexpr support for both intrinsics and __uint128_t
+#define IMATHLIB_CONSTEXPR_X64 constexpr
+#define IMATHLIB_HAS_CONSTEXPR_X64 1
+#else
+#define IMATHLIB_CONSTEXPR_X64 inline
+#endif
+
 
 #if !defined(IMATHLIB_ASSERT)
 #if IMATHLIB_DEBUG
@@ -98,19 +112,22 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 
 namespace imath {
 
-IMATHLIB_CONSTEXPR14 bool isPrime(uint32_t n);
-IMATHLIB_CONSTEXPR20 bool isPrime(uint64_t n);
+// This is the public interface of imath library.
+// While it isn't stable between releases, it should work "without surprises".
 
-IMATHLIB_CONSTEXPR14 uint32_t nextPrimeAfter(uint32_t n);
-IMATHLIB_CONSTEXPR20 uint64_t nextPrimeAfter(uint64_t n);
+IMATHLIB_CONSTEXPR_INTR bool isPrime(uint32_t n);
+IMATHLIB_CONSTEXPR_X64 bool isPrime(uint64_t n);
+
+IMATHLIB_CONSTEXPR_INTR uint32_t nextPrimeAfter(uint32_t n);
+IMATHLIB_CONSTEXPR_X64 uint64_t nextPrimeAfter(uint64_t n);
 
 struct FactorU32;
 class FactorizationResultU32;
 struct FactorU64;
 class FactorizationResultU64;
 
-IMATHLIB_CONSTEXPR14 FactorizationResultU32 factorize(uint32_t);
-IMATHLIB_CONSTEXPR20 FactorizationResultU64 factorize(uint64_t);
+IMATHLIB_CONSTEXPR_INTR FactorizationResultU32 factorize(uint32_t);
+IMATHLIB_CONSTEXPR_X64 FactorizationResultU64 factorize(uint64_t);
 
 template <size_t SIZE, typename T = uint32_t>
 class PrimeArray;
@@ -119,14 +136,14 @@ constexpr uint32_t pow(uint32_t n, uint32_t pow);
 constexpr uint64_t pow(uint64_t n, uint64_t pow);
 
 constexpr uint32_t mulmod(uint32_t a, uint32_t b, uint32_t mod);
-IMATHLIB_CONSTEXPR20 uint64_t mulmod(uint64_t a, uint64_t b, uint64_t mod);
+IMATHLIB_CONSTEXPR_X64 uint64_t mulmod(uint64_t a, uint64_t b, uint64_t mod);
 constexpr uint32_t powmod(uint32_t n, uint32_t pow, uint32_t mod);
-IMATHLIB_CONSTEXPR20 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod);
+IMATHLIB_CONSTEXPR_X64 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod);
 
-IMATHLIB_CONSTEXPR14 uint32_t gcd(uint32_t a, uint32_t b);
-IMATHLIB_CONSTEXPR14 uint64_t gcd(uint64_t a, uint64_t b);
-IMATHLIB_CONSTEXPR14 uint32_t lcm(uint32_t a, uint32_t b);
-IMATHLIB_CONSTEXPR14 uint64_t lcm(uint64_t a, uint64_t b);
+IMATHLIB_CONSTEXPR_INTR uint32_t gcd(uint32_t a, uint32_t b);
+IMATHLIB_CONSTEXPR_INTR uint64_t gcd(uint64_t a, uint64_t b);
+IMATHLIB_CONSTEXPR_INTR uint32_t lcm(uint32_t a, uint32_t b);
+IMATHLIB_CONSTEXPR_INTR uint64_t lcm(uint64_t a, uint64_t b);
 
 constexpr uint32_t roundUpToMultipleOf(uint32_t n, uint32_t mul);
 constexpr uint64_t roundUpToMultipleOf(uint64_t n, uint64_t mul);
@@ -141,6 +158,7 @@ constexpr uint64_t roundDownToMultipleOf(uint64_t n, uint64_t mul);
 IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint32_t n);
 IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n);
 
+// End of public interface
 
 namespace detail {
 
@@ -211,7 +229,7 @@ constexpr int countLeadingZeroesFallback(uint64_t n) {
     return 63 - detail::power_of_2_lookup_array_64[n];
 }
 
-IMATHLIB_CONSTEXPR14 int countLeadingZeroes(uint64_t n) {
+IMATHLIB_CONSTEXPR_INTR int countLeadingZeroes(uint64_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return countLeadingZeroesFallback(n);
     }
@@ -236,7 +254,7 @@ IMATHLIB_CONSTEXPR14 int countLeadingZeroes(uint64_t n) {
     return countLeadingZeroesFallback(n);
 #endif
 
-#elif __cplusplus >= 202002L
+#elif IMATHLIB_CPP_VER >= 202002L
     return std::countl_zero(n);
 
 #else
@@ -259,19 +277,19 @@ constexpr int countLeadingZeroesFallback(uint32_t n) {
     return 31 - detail::power_of_2_lookup_array_32[n];
 }
 
-IMATHLIB_CONSTEXPR14 int countLeadingZeroes(uint32_t n) {
+IMATHLIB_CONSTEXPR_INTR int countLeadingZeroes(uint32_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return countLeadingZeroesFallback(n);
     }
     // There is CLZ instruction on 32-bit ARMv5 and above architectures,
     // So use builtins whenever possible. No checks for ARMs < 5,
     // cause it would require a lot of boilerplate
-#if __cplusplus >= 202002L
+#if IMATHLIB_CPP_VER >= 202002L
 #define IMATHLIB_FAST_CLZ32
     return std::countl_zero(n);
 #elif defined(__GNUG__) || defined(__clang__)
 #define IMATHLIB_FAST_CLZ32
-    if (n == 0) return 64;
+    if (n == 0) return 32;
     return __builtin_clz(n);
 #elif defined (_MSC_VER)
 #define IMATHLIB_FAST_CLZ32
@@ -296,7 +314,7 @@ IMATHLIB_MSC_WARNING(4146)
     return detail::power_of_2_lookup_array_64[n];
 }
 
-IMATHLIB_CONSTEXPR14 int countTrailingZeroes(uint64_t n) {
+IMATHLIB_CONSTEXPR_INTR int countTrailingZeroes(uint64_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return countTrailingZeroesFallback(n);
     }
@@ -324,7 +342,7 @@ IMATHLIB_CONSTEXPR14 int countTrailingZeroes(uint64_t n) {
     return countTrailingZeroesFallback(n);
 #endif
 
-#elif __cplusplus >= 202002l
+#elif IMATHLIB_CPP_VER >= 202002l
     return std::countr_zero(n);
 
 #else
@@ -343,7 +361,7 @@ IMATHLIB_MSC_WARNING(4146)
     return detail::power_of_2_lookup_array_32[n];
 }
 
-IMATHLIB_CONSTEXPR14 int countTrailingZeroes(uint32_t n) {
+IMATHLIB_CONSTEXPR_INTR int countTrailingZeroes(uint32_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return countTrailingZeroesFallback(n);
     }
@@ -356,7 +374,7 @@ IMATHLIB_CONSTEXPR14 int countTrailingZeroes(uint32_t n) {
     if (n == 0) return 32;
     return __builtin_ctz(n);
 #endif
-#elif __cplusplus >= 202002L
+#elif IMATHLIB_CPP_VER >= 202002L
     return std::countr_zero(n);
 #elif defined(_MSC_VER) && !defined(_M_ARM)
 #define IMATHLIB_FAST_CTZ32
@@ -382,7 +400,7 @@ constexpr uint64_t gcdModuloRecursive(uint64_t a, uint64_t b) {
 }
 
 template <typename T>
-IMATHLIB_CONSTEXPR14 T gcdBinary(T a, T b) {
+IMATHLIB_CONSTEXPR_INTR T gcdBinary(T a, T b) {
     static_assert(std::is_integral<T>::value && std::is_unsigned<T>::value,
                   "Implementation bug - GCD must operate on unsigned");
 
@@ -509,10 +527,10 @@ static constexpr uint32_t bases_prime_test_u64[128] {
  * Miller-Rabin probabilistic test.
  * https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
  * */
-IMATHLIB_CONSTEXPR14
+IMATHLIB_CONSTEXPR_INTR
 bool isSPRP(uint32_t n, uint32_t base) {
     uint32_t d = n - 1;
-    uint32_t s = detail::countTrailingZeroes(d);
+    uint32_t s = countTrailingZeroes(d);
     d >>= s;
     uint32_t cur = powmod(base, d, n);
     if (cur == 1) return true;
@@ -527,10 +545,10 @@ bool isSPRP(uint32_t n, uint32_t base) {
  * Miller-Rabin probabilistic test.
  * https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
  * */
-IMATHLIB_CONSTEXPR20
+IMATHLIB_CONSTEXPR_X64
 bool isSPRP(uint64_t n, uint64_t base) {
     uint64_t d = n - 1;
-    uint32_t s = detail::countTrailingZeroes(d);
+    uint32_t s = countTrailingZeroes(d);
     d >>= s;
     uint64_t cur = powmod(base, d, n);
     if (cur == 1) return true;
@@ -551,7 +569,7 @@ constexpr uint32_t pollardRhoPoly(uint32_t x, uint32_t mod) {
  * The algorithm may fail for composite numbers.
  * Returned divisor does not have to be a prime number.
  * */
-IMATHLIB_CONSTEXPR14
+IMATHLIB_CONSTEXPR_INTR
 uint32_t pollardRhoFactorization(uint32_t n, uint32_t starting_value) {
     uint32_t turtle = starting_value;
     uint32_t hare = starting_value;
@@ -566,7 +584,7 @@ uint32_t pollardRhoFactorization(uint32_t n, uint32_t starting_value) {
     return result;
 }
 
-IMATHLIB_CONSTEXPR20 uint64_t pollardRhoPoly(uint64_t x, uint64_t mod) {
+IMATHLIB_CONSTEXPR_X64 uint64_t pollardRhoPoly(uint64_t x, uint64_t mod) {
     auto r = mulmod(x, x, mod) + 1;
     return r == mod ? 0 : r;
 }
@@ -577,7 +595,7 @@ IMATHLIB_CONSTEXPR20 uint64_t pollardRhoPoly(uint64_t x, uint64_t mod) {
  * The algorithm may fail for composite numbers.
  * Returned divisor does not have to be a prime number.
  * */
-IMATHLIB_CONSTEXPR20
+IMATHLIB_CONSTEXPR_X64
 uint64_t pollardRhoFactorization(uint64_t n, uint64_t starting_value) {
     uint64_t turtle = starting_value;
     uint64_t hare = starting_value;
@@ -604,39 +622,50 @@ constexpr u128 mul64x64Fallback(uint64_t a, uint64_t b) {
     // a * b = (ahi*B + alo) * (bhi*B + blo)
     // a * b = B * B ahi * bhi + B * (ahi * blo + bhi * alo) + alo * blo
 
+    //      ┌─────────┐
+    //      │  ah*bl  │
+    //      ├─────────┤
+    //      │  al*bh  │
+    // ┌────┴────┬────┴────┐
+    // │  ah*bh  │  al*bl  │
+    // └─────────┴─────────┘
+    //          ╱ mid │
+    //          └─────┘
+
     uint64_t ahbh = uint64_t{ahi} * bhi;
     uint64_t ahbl = uint64_t{ahi} * blo;
     uint64_t albh = uint64_t{alo} * bhi;
     uint64_t albl = uint64_t{alo} * blo;
 
-    uint64_t carry_bit = static_cast<uint32_t>(ahbl) +
-                         static_cast<uint32_t>(albh) <
-                         static_cast<uint32_t>(albh);
+    // max 34 bit value, 2 bits of carry to result.hi
+    uint64_t mid = (albl >> 32) + (ahbl & 0xffffffff) + (albh & 0xffffffff);
 
     u128 result{};
-    result.hi = ahbh + (ahbl >> 32) + (albh >> 32) + carry_bit;
-    result.lo = albl + (ahbl << 32) + (albh << 32);
+    result.hi = ahbh + (ahbl >> 32) + (albh >> 32) + (mid >> 32);
+    result.lo = (mid << 32) | (albl & 0xffffffff);
     return result;
 }
 
-IMATHLIB_CONSTEXPR20 u128 mul64x64(uint64_t a, uint64_t b) {
-    if (IMATHLIB_IS_CONSTEVAL) {
-        return mul64x64Fallback(a, b);
-    }
+IMATHLIB_CONSTEXPR_X64 u128 mul64x64(uint64_t a, uint64_t b) {
 #if defined(__SIZEOF_INT128__)
     __uint128_t result = (__uint128_t{a} * b);
     return u128{static_cast<uint64_t>(result >> 64),
                 static_cast<uint64_t>(result & static_cast<uint64_t>(-1))};
-#elif defined(_M_X64) || defined(_M_ARM64) || defined(_M_IA64)
+#else
+    if (IMATHLIB_IS_CONSTEVAL) {
+        return mul64x64Fallback(a, b);
+    }
+#if defined(_M_X64) || defined(_M_ARM64) || defined(_M_IA64)
     u128 result{};
     result.lo = _umul128(a, b, &result.hi);
     return result;
 #else
     return mul64x64Fallback(a, b);
 #endif
+#endif
 }
 
-IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
+IMATHLIB_CONSTEXPR_INTR uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
     IMATHLIB_ASSUME(0 < n.hi);
     IMATHLIB_ASSUME(0 < mod);
     IMATHLIB_ASSUME(n.hi < mod);
@@ -681,10 +710,23 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
     return higher_bits;
 }
 
-IMATHLIB_CONSTEXPR20 uint64_t mod128by64(const u128 n, uint64_t mod) {
+IMATHLIB_CONSTEXPR_X64 uint64_t mod128by64(const u128 n, uint64_t mod) {
     IMATHLIB_ASSUME(0 < n.hi);
     IMATHLIB_ASSUME(0 < mod);
     IMATHLIB_ASSUME(n.hi < mod);
+
+// We don't really want to use modulo on builtin u128,
+// and x86_64 assembly is prefferable.
+// We don't know if builtin optimizes for empty high bits in mod,
+// and call to it likely won't be inlined.
+// However, assembly is not available in constexpr context and having
+// constexpr in C++14 for everything is cool.
+#if defined(__SIZEOF_INT128__)
+        __uint128_t p{n.hi};
+        p <<= 64;
+        p |= n.lo;
+        return static_cast<uint64_t>(p % mod);
+#else
     if (IMATHLIB_IS_CONSTEVAL) {
         return mod128by64Fallback(n, mod);
     }
@@ -707,15 +749,10 @@ IMATHLIB_CONSTEXPR20 uint64_t mod128by64(const u128 n, uint64_t mod) {
     uint64_t result;
     (void)_udiv128(n.hi, n.lo, mod, &result);
     return result;
-#elif defined(__SIZEOF_INT128__)
-    // not default, cause compilers can't inline it
-    __uint128_t p{n.hi};
-    p <<= 64;
-    p |= n.lo;
-    return static_cast<uint64_t>(p % mod);
 #else
     return mod128by64Fallback(n, mod);
-#endif
+#endif  // __x86_64__ defined(_M_X64)
+#endif  // defined(__SIZEOF_INT128__)
 }
 
 /**
@@ -768,14 +805,14 @@ public:
 
     constexpr
     PrimeArray() : array{} {
-        constexpr const int sieve_size = getSieveSize();
+        constexpr const size_t sieve_size = getSieveSize();
         bool sieve[sieve_size]{}; // true if is composite
         array[0] = 2;
         size_t filled = 1;
         size_t next_prime = 1;
         while (filled < SIZE) {
             do next_prime += 2; while(sieve[next_prime / 2]);
-            array[filled++] = next_prime;
+            array[filled++] = static_cast<T>(next_prime);
             if (next_prime * next_prime > next_prime) // protect from overflow
             for (size_t i = next_prime * next_prime;
                     i / 2 < sieve_size;
@@ -812,7 +849,7 @@ private:
 
 static constexpr PrimeArray<64, uint16_t> kSmallPrimes;
 
-IMATHLIB_CONSTEXPR14 bool isPrime(uint32_t n) {
+IMATHLIB_CONSTEXPR_INTR bool isPrime(uint32_t n) {
     if (n == 2 || n == 3 || n == 5 || n == 7) return true;
     if (n % 2 == 0 || n % 3 == 0 || n % 5 == 0 || n % 7 == 0) return false;
     if (n < 121) return (n > 1);
@@ -823,7 +860,7 @@ IMATHLIB_CONSTEXPR14 bool isPrime(uint32_t n) {
     return detail::isSPRP(n, detail::bases_prime_test_u32[h]);
 }
 
-IMATHLIB_CONSTEXPR20 bool isPrime(uint64_t n) {
+IMATHLIB_CONSTEXPR_X64 bool isPrime(uint64_t n) {
     if (n < (1ull << 32)) return isPrime(static_cast<uint32_t>(n));
     if (n % 2 == 0 || n % 3 == 0 || n % 5 == 0 || n % 7 == 0) return false;
 
@@ -856,13 +893,13 @@ IMATHLIB_CONSTEXPR20 bool isPrime(uint64_t n) {
            detail::isSPRP(n, uint64_t{b4});
 }
 
-IMATHLIB_CONSTEXPR14 uint32_t nextPrimeAfter(uint32_t n) {
+IMATHLIB_CONSTEXPR_INTR uint32_t nextPrimeAfter(uint32_t n) {
     IMATHLIB_ASSERT(n < 4294967291u);
     if (n < 2) return 2;
     for (n = n + 1 + (n & 1); !isPrime(n); n += 2);
     return n;
 }
-IMATHLIB_CONSTEXPR20 uint64_t nextPrimeAfter(uint64_t n) {
+IMATHLIB_CONSTEXPR_X64 uint64_t nextPrimeAfter(uint64_t n) {
     IMATHLIB_ASSERT(n < 18446744073709551557ull);
     if (n < 4294967291u) {  // biggest 32-bit prime
         return nextPrimeAfter(static_cast<uint32_t>(n));
@@ -932,7 +969,7 @@ private:
 
     FactorU32 factors_[10]{};
     size_t size_{};
-    friend constexpr FactorizationResultU32 factorize(uint32_t n);
+    friend IMATHLIB_CONSTEXPR_INTR FactorizationResultU32 factorize(uint32_t n);
 };
 
 struct FactorU64 {
@@ -994,10 +1031,10 @@ private:
 
     FactorU64 factors_[16]{};
     size_t size_{};
-    friend IMATHLIB_CONSTEXPR20 FactorizationResultU64 factorize(uint64_t n);
+    friend IMATHLIB_CONSTEXPR_X64 FactorizationResultU64 factorize(uint64_t n);
 };
 
-IMATHLIB_CONSTEXPR14 FactorizationResultU32 factorize(uint32_t n) {
+IMATHLIB_CONSTEXPR_INTR FactorizationResultU32 factorize(uint32_t n) {
     constexpr const size_t kSmallPrimesTested = 16;
     static_assert(kSmallPrimesTested >= 4,
                   "2, 3, 5, 7 are used in primality test, so we need to test them here too");
@@ -1061,7 +1098,7 @@ IMATHLIB_CONSTEXPR14 FactorizationResultU32 factorize(uint32_t n) {
     return result;
 }
 
-IMATHLIB_CONSTEXPR20 FactorizationResultU64 factorize(uint64_t n) {
+IMATHLIB_CONSTEXPR_X64 FactorizationResultU64 factorize(uint64_t n) {
     constexpr const size_t kSmallPrimesTested = 16;
     static_assert(kSmallPrimesTested >= 4,
                   "2, 3, 5, 7 are used in primality test, so we need to test them here too");
@@ -1149,7 +1186,7 @@ constexpr uint32_t mulmod(uint32_t a, uint32_t b, uint32_t mod) {
     IMATHLIB_ASSERT(mod > 0);
     return ((uint64_t)a * b) % mod;
 }
-IMATHLIB_CONSTEXPR20 uint64_t mulmod(uint64_t a, uint64_t b, uint64_t mod) {
+IMATHLIB_CONSTEXPR_X64 uint64_t mulmod(uint64_t a, uint64_t b, uint64_t mod) {
     IMATHLIB_ASSERT(mod > 0);
     if ((mod & (mod - 1)) == 0) {  // is power of two
         return (a * b) & (mod - 1);
@@ -1177,7 +1214,7 @@ constexpr uint32_t powmod(uint32_t n, uint32_t pow, uint32_t mod) {
     }
     return res;
 }
-IMATHLIB_CONSTEXPR20 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod) {
+IMATHLIB_CONSTEXPR_X64 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod) {
     IMATHLIB_ASSERT(mod > 0);
     uint64_t cur = n;
     uint64_t res = 1;
@@ -1189,7 +1226,7 @@ IMATHLIB_CONSTEXPR20 uint64_t powmod(uint64_t n, uint64_t pow, uint64_t mod) {
     return res;
 }
 
-IMATHLIB_CONSTEXPR14 uint32_t gcd(uint32_t a, uint32_t b) {
+IMATHLIB_CONSTEXPR_INTR uint32_t gcd(uint32_t a, uint32_t b) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return detail::gcdModuloRecursive(a, b);
     }
@@ -1201,7 +1238,7 @@ IMATHLIB_CONSTEXPR14 uint32_t gcd(uint32_t a, uint32_t b) {
 #endif
 }
 
-IMATHLIB_CONSTEXPR14 uint64_t gcd(uint64_t a, uint64_t b) {
+IMATHLIB_CONSTEXPR_INTR uint64_t gcd(uint64_t a, uint64_t b) {
     if (IMATHLIB_IS_CONSTEVAL) {
         return detail::gcdModuloRecursive(a, b);
     }
@@ -1213,11 +1250,11 @@ IMATHLIB_CONSTEXPR14 uint64_t gcd(uint64_t a, uint64_t b) {
 #endif
 }
 
-IMATHLIB_CONSTEXPR14 uint32_t lcm(uint32_t a, uint32_t b) {
+IMATHLIB_CONSTEXPR_INTR uint32_t lcm(uint32_t a, uint32_t b) {
     return a / gcd (a, b) * b;
 }
 
-IMATHLIB_CONSTEXPR14 uint64_t lcm(uint64_t a, uint64_t b) {
+IMATHLIB_CONSTEXPR_INTR uint64_t lcm(uint64_t a, uint64_t b) {
     return a / gcd (a, b) * b;
 }
 
@@ -1299,9 +1336,11 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
 
 // These are all the macros that can be defined by this header:
 // IMATHLIB_IMATH_H
-// IMATHLIB_CONSTEXPR14
+// IMATHLIB_CONSTEXPR_INTR
+// IMATHLIB_CONSTEXPR_X64
 // IMATHLIB_CONSTEXPR20
-// IMATHLIB_HAS_CONSTEXPR14
+// IMATHLIB_HAS_CONSTEXPR_INTR
+// IMATHLIB_HAS_CONSTEXPR_X64
 // IMATHLIB_HAS_CONSTEXPR20
 // IMATHLIB_IS_CONSTEVAL
 // IMATHLIB_ASSERT

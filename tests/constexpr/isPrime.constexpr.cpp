@@ -1,7 +1,7 @@
-#include "../imath.h"
-#include "catch/catch.hpp"
-
+#include <cstdint>
 #include <utility>
+
+#include "imath.h"
 
 constexpr std::pair<uint32_t, bool> small_is_prime_table[]{
     {0, false},
@@ -278,7 +278,7 @@ constexpr uint64_t bigprimesu64[] {
     static_cast<uint64_t>(-363)
 };
 
-#if IMATHLIB_HAS_CONSTEXPR14
+#if IMATHLIB_HAS_CONSTEXPR_INTR
 static_assert(imath::isPrime(0u) == false);
 static_assert(imath::isPrime(1u) == false);
 static_assert(imath::isPrime(2u) == true);
@@ -287,15 +287,42 @@ static_assert(imath::isPrime(4u) == false);
 static_assert(imath::isPrime(5u) == true);
 static_assert(imath::isPrime(2213431729u) == false);
 static_assert(imath::isPrime(4294967291u) == true);
+
+// set of xxhash primes
+static_assert(imath::isPrime(2654435761U));
+static_assert(imath::isPrime(2246822519U));
+static_assert(imath::isPrime(3266489917U));
+static_assert(imath::isPrime( 668265263U));
+static_assert(imath::isPrime( 374761393U));
 #endif
 
-#if IMATHLIB_HAS_CONSTEXPR20
+#if IMATHLIB_HAS_CONSTEXPR_X64
 static_assert(imath::isPrime(10001538279258594301ull) == false);
+
+// biggest 64 bit prime
 static_assert(imath::isPrime(static_cast<uint64_t>(-59)) == true);
+
+// set of xxhash primes
+static_assert(imath::isPrime(11400714785074694791ULL));
+static_assert(imath::isPrime(14029467366897019727ULL));
+static_assert(imath::isPrime( 1609587929392839161ULL));
+static_assert(imath::isPrime( 9650029242287828579ULL));
+static_assert(imath::isPrime( 2870177450012600261ULL));
+
 #endif
 
 #if __cpp_lib_ranges >= 201911L && IMATHLIB_HAS_CONSTEXPR20
 #include <algorithm>
+#include <ranges>
+
+#if defined(__SIZEOF_INT128__)
+constexpr int take_limit = 256;
+#else
+// Without u128 support we hit the limit of constexpr steps,
+// so check only a few testcases
+constexpr int take_limit = 32;
+#endif
+
 static_assert(std::ranges::all_of(
                 small_is_prime_table,
                 [](auto&& p) { return imath::isPrime(p.first) == p.second; } ));
@@ -307,10 +334,12 @@ static_assert(std::ranges::none_of(
                 strpspsu32, [](auto&& n) { return imath::isPrime(n); } ));
 
 static_assert(std::ranges::none_of(
-                strpspsu64, [](auto&& n) { return imath::isPrime(n); } ));
+                strpspsu64 | std::views::take(take_limit),
+                [](auto&& n) { return imath::isPrime(n); } ));
 
 static_assert(std::ranges::none_of(
-                vstrpspsu64, [](auto&& n) { return imath::isPrime(n); } ));
+                vstrpspsu64 | std::views::take(take_limit),
+                [](auto&& n) { return imath::isPrime(n); } ));
 
 static_assert(std::ranges::all_of(
                 bigprimesu32, [](auto&& n) { return imath::isPrime(n); } ));
@@ -319,60 +348,3 @@ static_assert(std::ranges::all_of(
                 bigprimesu64, [](auto&& n) { return imath::isPrime(n); } ));
 
 #endif
-
-
-TEST_CASE( "Correct prime test for low numbers u32", "[isPrime32]" ) {
-    for (auto&[n, is_prime] : small_is_prime_table) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(n) == is_prime);
-    }
-}
-
-TEST_CASE( "Correct prime test for low numbers u64", "[isPrime64]" ) {
-    for (auto&[n, is_prime] : small_is_prime_table) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(uint64_t{n}) == is_prime);
-    }
-}
-
-TEST_CASE( "Fermat pseudoprimes to base 2 u32", "[isPrime32]" ) {
-    for (uint32_t n : pspsu32) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(n) == false);
-    }
-}
-
-TEST_CASE( "Strong pseudoprimes to base 2 u32", "[isPrime32]" ) {
-    for (uint32_t n : strpspsu32) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(n) == false);
-    }
-}
-
-TEST_CASE( "Strong pseudoprimes to base 2 u64", "[isPrime64]" ) {
-    for (uint64_t n : strpspsu64) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(n) == false);
-    }
-}
-
-TEST_CASE( "Strong pseudoprimes to base 2 and 15 u64", "[isPrime64]" ) {
-    for (uint64_t n : vstrpspsu64) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(n) == false);
-    }
-}
-
-TEST_CASE( "Big primes u32", "[isPrime32]" ) {
-    for (uint32_t n : bigprimesu32) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(n) == true);
-    }
-}
-
-TEST_CASE( "Big primes u64", "[isPrime64]" ) {
-    for (uint64_t n : bigprimesu64) {
-        INFO("n = " << n);
-        CHECK( imath::isPrime(n) == true);
-    }
-}

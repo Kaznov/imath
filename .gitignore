@@ -4,6 +4,9 @@
 # executables
 *.exe
 
+# build folder
+/build
+
 # These files are too big to be included in the repo:
 
 # used for extensive testing and test generation

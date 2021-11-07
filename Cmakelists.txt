@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.12)
+
+project(imath VERSION 0.0.1)
+
+add_executable(imath_lib_example
+    example.cpp)
+set_property(TARGET imath_lib_example PROPERTY CXX_STANDARD 14)
+
+
+add_subdirectory(third_party/Catch2)
+add_executable(imath_lib_tests
+    tests/isPrime.runtime.cpp
+    tests/clz.runtime.cpp
+    tests/ctz.runtime.cpp
+    tests/mod128by64.runtime.cpp
+    tests/mul64by64.runtime.cpp)
+target_include_directories(imath_lib_tests PRIVATE ${CMAKE_SOURCE_DIR})
+set_property(TARGET imath_lib_tests PROPERTY CXX_STANDARD 14)
+target_link_libraries(imath_lib_tests PRIVATE Catch2::Catch2WithMain)
+
+add_library(imath_lib_tests_constexpr STATIC
+    tests/constexpr/isPrime.constexpr.cpp)
+target_include_directories(imath_lib_tests_constexpr PRIVATE
+    ${CMAKE_SOURCE_DIR})
+set_property(TARGET imath_lib_tests_constexpr PROPERTY CXX_STANDARD 20)
