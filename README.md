@@ -17,7 +17,7 @@ Features
 
 Code should be free of warnings on all major compilers, even on high warning levels `-Wall` and `-Wextra`.
 
-Most of the functions for 32-bit integers is `constexpr` in C++14, and all the functions, both for 32bit and 64bit integers are `constexpr` in C++20 (it requires `std::is_constant_evaluated()`).
+Most of the functions is `constexpr` in C++14 on Clang and GCC, and all the functions are `constexpr` in C++20 for all compilers (it requires `std::is_constant_evaluated()`).
 
 Some operations were tuned to use intrinsics when compiled by GCC, Clang or MSVC compilers. Note, that the library was designed to work most efficiently on x86_64 architecture, but it still should work on any machine.
 
@@ -38,13 +38,13 @@ int main() {
     // range-for loop also supported!
     for (size_t i = 0; i < fact_result.size() - 1; ++i) {
        auto factor = fact_result[i];
-       std::cout << factor.prime << "**" << factor.power << " * ";
+       std::cout << factor.prime << "^" << factor.power << " × ";
     }
     std::cout << fact_result.back().prime << "**"
               << fact_result.back().power;
 }
 ```
-Expected output: `3851820 = 2**2 * 3**3 * 5**1 * 7**1 * 1019**1`
+Expected output: `3851820 = 2^2 × 3^3 × 5^1 × 7^1 × 1019^1`
 
 
 **Generate a compile-time prime array**
@@ -93,7 +93,7 @@ int main() {
 **Raise a number to given power over a modulus**
 ```c++
 int main() {
-    std::cout << " (5 ** 3) % 13 =  "
+    std::cout << " (5 ^ 3) % 13 =  "
               << imath::powmod(5, 3, 13) << "\n";
     // And there is no risk of overflow!
 }
