@@ -1,5 +1,5 @@
 # imath
-![example workflow](https://github.com/kaznov/imath/actions/workflows/demo_action/badge.svg)
+![example workflow](https://github.com/kaznov/imath/actions/workflows/demo_action.yml/badge.svg)
 --------
 THIS LIBRARY IS IN A VERY EARLY PHASE OF DEVELOPMENT. DO NOT USE.
 
