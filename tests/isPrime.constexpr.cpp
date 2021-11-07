@@ -4,6 +4,13 @@
 #include "imath.h"
 #include "catch2/catch_test_macros.hpp"
 
+uint32_t constexpr operator"" _u32(unsigned long long n) {
+    return static_cast<uint32_t>(n);
+}
+uint64_t constexpr operator"" _u64(unsigned long long n) {
+    return static_cast<uint64_t>(n);
+}
+
 constexpr std::pair<uint32_t, bool> small_is_prime_table[]{
     {0, false},
     {1, false},
@@ -281,38 +288,38 @@ constexpr uint64_t bigprimesu64[] {
 
 #if IMATHLIB_HAS_CONSTEXPR_INTR
 TEST_CASE( "Correct constexpr prime test for u32", "[isPrime32constexpr]" ) {
-    STATIC_REQUIRE(imath::isPrime(0u) == false);
-    STATIC_REQUIRE(imath::isPrime(1u) == false);
-    STATIC_REQUIRE(imath::isPrime(2u) == true);
-    STATIC_REQUIRE(imath::isPrime(3u) == true);
-    STATIC_REQUIRE(imath::isPrime(4u) == false);
-    STATIC_REQUIRE(imath::isPrime(5u) == true);
-    STATIC_REQUIRE(imath::isPrime(2213431729u) == false);
-    STATIC_REQUIRE(imath::isPrime(4294967291u) == true);
+    STATIC_REQUIRE(imath::isPrime(0_u32) == false);
+    STATIC_REQUIRE(imath::isPrime(1_u32) == false);
+    STATIC_REQUIRE(imath::isPrime(2_u32) == true);
+    STATIC_REQUIRE(imath::isPrime(3_u32) == true);
+    STATIC_REQUIRE(imath::isPrime(4_u32) == false);
+    STATIC_REQUIRE(imath::isPrime(5_u32) == true);
+    STATIC_REQUIRE(imath::isPrime(2213431729_u32) == false);
+    STATIC_REQUIRE(imath::isPrime(4294967291_u32) == true);
 
     // set of xxhash primes
-    STATIC_REQUIRE(imath::isPrime(2654435761U));
-    STATIC_REQUIRE(imath::isPrime(2246822519U));
-    STATIC_REQUIRE(imath::isPrime(3266489917U));
-    STATIC_REQUIRE(imath::isPrime( 668265263U));
-    STATIC_REQUIRE(imath::isPrime( 374761393U));
+    STATIC_REQUIRE(imath::isPrime(2654435761_u32));
+    STATIC_REQUIRE(imath::isPrime(2246822519_u32));
+    STATIC_REQUIRE(imath::isPrime(3266489917_u32));
+    STATIC_REQUIRE(imath::isPrime( 668265263_u32));
+    STATIC_REQUIRE(imath::isPrime( 374761393_u32));
 }
 #endif
 
 #if IMATHLIB_HAS_CONSTEXPR_X64
 TEST_CASE( "Correct constexpr prime test for u64", "[isPrime64constexpr]" ) {
 
-    STATIC_REQUIRE(imath::isPrime(10001538279258594301ull) == false);
+    STATIC_REQUIRE(imath::isPrime(10001538279258594301_u64) == false);
 
     // biggest 64 bit prime
     STATIC_REQUIRE(imath::isPrime(static_cast<uint64_t>(-59)) == true);
 
     // set of xxhash primes
-    STATIC_REQUIRE(imath::isPrime(11400714785074694791ULL));
-    STATIC_REQUIRE(imath::isPrime(14029467366897019727ULL));
-    STATIC_REQUIRE(imath::isPrime( 1609587929392839161ULL));
-    STATIC_REQUIRE(imath::isPrime( 9650029242287828579ULL));
-    STATIC_REQUIRE(imath::isPrime( 2870177450012600261ULL));
+    STATIC_REQUIRE(imath::isPrime(11400714785074694791_u64));
+    STATIC_REQUIRE(imath::isPrime(14029467366897019727_u64));
+    STATIC_REQUIRE(imath::isPrime( 1609587929392839161_u64));
+    STATIC_REQUIRE(imath::isPrime( 9650029242287828579_u64));
+    STATIC_REQUIRE(imath::isPrime( 2870177450012600261_u64));
 }
 #endif
 

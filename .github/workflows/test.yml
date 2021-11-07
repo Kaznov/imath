@@ -85,4 +85,5 @@ jobs:
           cd build
           ctest \
             -C Debug \
+            -E ".*NOT_BUILT.*" \
             --output-on-failure
