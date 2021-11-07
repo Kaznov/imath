@@ -58,8 +58,6 @@ jobs:
           gcc --version
           clang --version
 
-      - run: ls
-
       - name: Configure CMake
         shell: bash
         run: |
@@ -69,7 +67,7 @@ jobs:
             -B build \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_STANDARD=20 \
-            -DBUILD_TESTS=ON
+            -DENABLE_TESTING=ON
 
       - name: Build
         shell: bash
