@@ -1,12 +1,17 @@
 #include "imath.h"
 #include "catch2/catch_test_macros.hpp"
 
-#include <utility>
+uint32_t constexpr operator"" _u32(unsigned long long n) {
+    return static_cast<uint32_t>(n);
+}
+uint64_t constexpr operator"" _u64(unsigned long long n) {
+    return static_cast<uint64_t>(n);
+}
 
 TEST_CASE( "CLZ32 fallback powers of 2", "[clzf32]" ) {
-    CHECK(imath::detail::countLeadingZeroesFallback(0u) == 32);
+    CHECK(imath::detail::countLeadingZeroesFallback(0_u32) == 32);
     IMATHLIB_MSC_WARNING(4146);
-    CHECK(imath::detail::countLeadingZeroesFallback(-1u) == 0);
+    CHECK(imath::detail::countLeadingZeroesFallback(-1_u32) == 0);
     for (int i = 0; i < 32; ++i) {
         uint32_t n = 1u << i;
         INFO("n = 1 << " << i);
@@ -15,9 +20,9 @@ TEST_CASE( "CLZ32 fallback powers of 2", "[clzf32]" ) {
 }
 
 TEST_CASE( "CLZ64 fallback powers of 2", "[clzf64]" ) {
-    CHECK(imath::detail::countLeadingZeroesFallback(0ull) == 64);
+    CHECK(imath::detail::countLeadingZeroesFallback(0_u64) == 64);
     IMATHLIB_MSC_WARNING(4146);
-    CHECK(imath::detail::countLeadingZeroesFallback(-1ull) == 0);
+    CHECK(imath::detail::countLeadingZeroesFallback(-1_u64) == 0);
     for (int i = 0; i < 64; ++i) {
         uint64_t n = 1ull << i;
         INFO("n = 1 << " << i);
@@ -42,9 +47,9 @@ TEST_CASE( "CLZ64 fallback powers of 2 minus 1", "[clzf64]" ) {
 }
 
 TEST_CASE( "CLZ32 powers of 2", "[clz32]" ) {
-    CHECK(imath::detail::countLeadingZeroes(0u) == 32);
+    CHECK(imath::detail::countLeadingZeroes(0_u32) == 32);
     IMATHLIB_MSC_WARNING(4146);
-    CHECK(imath::detail::countLeadingZeroes(-1u) == 0);
+    CHECK(imath::detail::countLeadingZeroes(-1_u64) == 0);
     for (int i = 1; i < 32; ++i) {
         uint32_t n = 1u << i;
         INFO("n = 1 << " << i);
@@ -53,9 +58,9 @@ TEST_CASE( "CLZ32 powers of 2", "[clz32]" ) {
 }
 
 TEST_CASE( "CLZ64 powers of 2", "[clz64]" ) {
-    CHECK(imath::detail::countLeadingZeroes(0ull) == 64);
+    CHECK(imath::detail::countLeadingZeroes(0_u64) == 64);
     IMATHLIB_MSC_WARNING(4146);
-    CHECK(imath::detail::countLeadingZeroes(-1ull) == 0);
+    CHECK(imath::detail::countLeadingZeroes(-1_u64) == 0);
     for (int i = 1; i < 64; ++i) {
         uint64_t n = 1ull << i;
         INFO("n = 1 << " << i);

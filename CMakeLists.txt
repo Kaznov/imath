@@ -14,6 +14,10 @@ set_project_warnings(project_warnings)
 # allow for static analysis options
 include(cmake/StaticAnalyzers.cmake)
 
+if(NOT "${CMAKE_CXX_STANDARD}")
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
 option(ENABLE_TESTING "Enable Test Builds" ON)
 
 if(ENABLE_TESTING)
@@ -27,5 +31,4 @@ endif()
 
 add_executable(imath_lib_example
     example.cpp)
-set_property(TARGET imath_lib_example PROPERTY CXX_STANDARD 14)
 target_link_libraries(imath_lib_example PRIVATE project_warnings)
