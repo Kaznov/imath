@@ -43,7 +43,7 @@ int main() {
        auto factor = fact_result[i];
        std::cout << factor.prime << "^" << factor.power << " × ";
     }
-    std::cout << fact_result.back().prime << "**"
+    std::cout << fact_result.back().prime << "^"
               << fact_result.back().power;
 }
 ```

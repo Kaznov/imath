@@ -1284,10 +1284,11 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint32_t n) {
     constexpr uint32_t mask =
         0b11111101111111001111110111101100u;
     if ((mask >> (n & 31)) & 1) return false;
+    if (n == 0) return true;
     int trailing_zeroes = detail::ctz(n);
     if (trailing_zeroes & 1) return false;
     n >>= trailing_zeroes;
-    if ((n&7) != 1) return n == 0;
+    if ((n&7) != 1) return false;
     uint32_t root{};
     if (IMATHLIB_IS_CONSTEVAL) {
         // it's slower than floating point sqrt (usually),
@@ -1314,10 +1315,11 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
         0b1111110111111101111111011110110111111101111111001111110111101100ull;
     // choose a bit in the mask, hopefully compiled to MOV + BT
     if ((mask >> (n & 63)) & 1) return false;
+    if (n == 0) return true;
     int trailing_zeroes = detail::ctz(n);
     if (trailing_zeroes & 1) return false;
     n >>= trailing_zeroes;
-    if ((n&7) != 1) return n == 0;
+    if ((n&7) != 1) return false;
     uint64_t root{};
     if (IMATHLIB_IS_CONSTEVAL) {
         // it's slower than floating point sqrt (usually),
