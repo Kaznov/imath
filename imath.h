@@ -626,8 +626,6 @@ constexpr u128 mul64x64Fallback(uint64_t a, uint64_t b) {
     // ┌────┴────┬────┴────┐
     // │  ah*bh  │  al*bl  │
     // └─────────┴─────────┘
-    //          ╱ mid │
-    //          └─────┘
 
     uint64_t ahbh = uint64_t{ahi} * bhi;
     uint64_t ahbl = uint64_t{ahi} * blo;
@@ -635,10 +633,10 @@ constexpr u128 mul64x64Fallback(uint64_t a, uint64_t b) {
     uint64_t albl = uint64_t{alo} * blo;
 
     // max 34 bit value, 2 bits of carry to result.hi
-    uint64_t mid = (albl >> 32) + (ahbl & 0xffffffff) + (albh & 0xffffffff);
+    uint64_t mid = (albl >> 32) + (ahbl & 0xffffffff) + albh;
 
     u128 result{};
-    result.hi = ahbh + (ahbl >> 32) + (albh >> 32) + (mid >> 32);
+    result.hi = ahbh + (ahbl >> 32) + (mid >> 32);
     result.lo = (mid << 32) | (albl & 0xffffffff);
     return result;
 }
@@ -663,7 +661,6 @@ IMATHLIB_CONSTEXPR_X64 u128 mul64x64(uint64_t a, uint64_t b) {
 }
 
 IMATHLIB_CONSTEXPR_INTR uint64_t mod128by64Fallback(const u128 n, uint64_t mod) {
-    IMATHLIB_ASSUME(0 < n.hi);
     IMATHLIB_ASSUME(0 < mod);
     IMATHLIB_ASSUME(n.hi < mod);
 

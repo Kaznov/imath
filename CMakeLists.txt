@@ -18,6 +18,11 @@ if(NOT "${CMAKE_CXX_STANDARD}")
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # for debug build enable imath assertions on all targets
+  add_definitions (-DIMATHLIB_DEBUG=1)
+endif()
+
 option(ENABLE_TESTING "Enable Test Builds" ON)
 
 if(ENABLE_TESTING)
