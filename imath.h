@@ -83,7 +83,7 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 #include <cassert>
 #define IMATHLIB_ASSERT(...) assert(__VA_ARGS__)
 #else
-#define IMATHLIB_ASSERT(...) do {} while(false)
+#define IMATHLIB_ASSERT(...) void()
 #endif
 #endif  // !defined(IMATHLIB_ASSERT)
 
@@ -94,12 +94,12 @@ static_assert(static_cast<int32_t>(uint32_t{4294967295u}) == -1,
 #else
 #if defined(__GNUG__) || defined(__clang__)
 #define IMATHLIB_ASSUME(...) \
-    do { if(!(__VA_ARGS__)) __builtin_unreachable(); } while (false)
+    (static_cast<bool>(__VA_ARGS__) ? void() : __builtin_unreachable())
 #elif defined(_MSC_VER)
 #define IMATHLIB_ASSUME(...) \
-    do { __assume(__VA_ARGS__); } while (false)
+    __assume(__VA_ARGS__)
 #else
-#define IMATHLIB_ASSUME(...) do {} while(false)
+#define IMATHLIB_ASSUME(...) void()
 #endif
 #endif
 #endif  // !defined(IMATHLIB_ASSUME)
@@ -193,27 +193,27 @@ constexpr void simpleSwapIf(T& a, T& b, bool cond) {
     b = cond ? temp : b;
 }
 
-static constexpr uint32_t kDeBruijn32 =
+constexpr uint32_t kDeBruijn32 =
     0b00000100011001010011101011011111u;
-static constexpr uint64_t kDeBruijn64 =
+constexpr uint64_t kDeBruijn64 =
     0b0000001000011000101000111001001011001101001111010101110110111111ull;
 
 /**
  * Perfect 2^n -> n mapping arrays for use with De Bruijn sequences above
  * http://supertech.csail.mit.edu/papers/debruijn.pdf
  * */
-static constexpr uint8_t power_of_2_lookup_array_64[64] {
+constexpr uint8_t power_of_2_lookup_array_64[64] {
      0,  1,  2,  7,  3, 13,  8, 19,  4, 25, 14, 28,  9, 34, 20, 40,
      5, 17, 26, 38, 15, 46, 29, 48, 10, 31, 35, 54, 21, 50, 41, 57,
     63,  6, 12, 18, 24, 27, 33, 39, 16, 37, 45, 47, 30, 53, 49, 56,
     62, 11, 23, 32, 36, 44, 52, 55, 61, 22, 43, 51, 60, 42, 59, 58
 };
-static constexpr uint8_t power_of_2_lookup_array_32[32] {
+constexpr uint8_t power_of_2_lookup_array_32[32] {
      0,  1,  2,  6,  3, 11,  7, 16,  4, 14, 12, 21,  8, 23, 17, 26,
      31, 5, 10, 15, 13, 20, 22, 25, 30,  9, 19, 24, 29, 18, 28, 27
 };
 
-constexpr int countLeadingZeroesFallback(uint64_t n) {
+constexpr int clzFallback(uint64_t n) {
     if (n == 0) return 64;
     n = n | (n >>  1); // Propagate leftmost
     n = n | (n >>  2); // 1-bit to the right.
@@ -229,40 +229,7 @@ constexpr int countLeadingZeroesFallback(uint64_t n) {
     return 63 - detail::power_of_2_lookup_array_64[n];
 }
 
-IMATHLIB_CONSTEXPR_INTR int countLeadingZeroes(uint64_t n) {
-    if (IMATHLIB_IS_CONSTEVAL) {
-        return countLeadingZeroesFallback(n);
-    }
-#if (defined(__GNUG__) || defined(__clang__))
-#if INTPTR_MAX == INT64_MAX
-#define IMATHLIB_FAST_CLZ64
-    if (n == 0) return 64;
-    return __builtin_clzll(n);
-#else
-    return countLeadingZeroesFallback(n);
-#endif
-
-#elif defined(_MSC_VER)
-#if defined(_M_X64) || defined(_M_ARM64)
-#define IMATHLIB_FAST_CLZ64
-    // There is no good way to check for LZCNT instruction availability
-    if (n == 0) return 64;
-    unsigned long index = 0;
-    (void)_BitScanReverse64(&index, n);
-    return 63 - index;
-#else
-    return countLeadingZeroesFallback(n);
-#endif
-
-#elif IMATHLIB_CPP_VER >= 202002L
-    return std::countl_zero(n);
-
-#else
-    return countLeadingZeroesFallback(n);
-#endif
-}
-
-constexpr int countLeadingZeroesFallback(uint32_t n) {
+constexpr int clzFallback(uint32_t n) {
     if (n == 0) return 32;
     n = n | (n >>  1); // Propagate leftmost
     n = n | (n >>  2); // 1-bit to the right.
@@ -277,9 +244,64 @@ constexpr int countLeadingZeroesFallback(uint32_t n) {
     return 31 - detail::power_of_2_lookup_array_32[n];
 }
 
-IMATHLIB_CONSTEXPR_INTR int countLeadingZeroes(uint32_t n) {
+constexpr int ctzFallback(uint64_t n) {
+    if (n == 0) return 64;
+IMATHLIB_MSC_WARNING(4146)
+    n = n & (-n); // extract rightmost bit
+    // This magic number, has bit representation that is a de Bruijn sequence.
+    // Because of that it is a perfect hash for powers of 2.
+    n *= detail::kDeBruijn64;
+    n >>= 58;          // top 6 bits are the perfect hash
+    return detail::power_of_2_lookup_array_64[n];
+}
+
+constexpr int ctzFallback(uint32_t n) {
+    if (n == 0) return 32;
+IMATHLIB_MSC_WARNING(4146)
+    n = n & (-n); // extract rightmost bit
+    // This magic number has bit representation that is a de Bruijn sequence.
+    // Because of that it is a perfect hash for powers of 2.
+    n *= kDeBruijn32;
+    n >>= 27;          // top 5 bits are the perfect hash
+    return detail::power_of_2_lookup_array_32[n];
+}
+
+IMATHLIB_CONSTEXPR_INTR int clz(uint64_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
-        return countLeadingZeroesFallback(n);
+        return clzFallback(n);
+    }
+#if (defined(__GNUG__) || defined(__clang__))
+#if INTPTR_MAX == INT64_MAX
+#define IMATHLIB_FAST_CLZ64
+    if (n == 0) return 64;
+    return __builtin_clzll(n);
+#else
+    return clzFallback(n);
+#endif
+
+#elif defined(_MSC_VER)
+#if defined(_M_X64) || defined(_M_ARM64)
+#define IMATHLIB_FAST_CLZ64
+    // There is no good way to check for LZCNT instruction availability
+    if (n == 0) return 64;
+    unsigned long index = 0;
+    (void)_BitScanReverse64(&index, n);
+    return static_cast<int>(63 - index);
+#else
+    return clzFallback(n);
+#endif
+
+#elif IMATHLIB_CPP_VER >= 202002L
+    return std::countl_zero(n);
+#else
+    return clzFallback(n);
+#endif
+}
+
+
+IMATHLIB_CONSTEXPR_INTR int clz(uint32_t n) {
+    if (IMATHLIB_IS_CONSTEVAL) {
+        return clzFallback(n);
     }
     // There is CLZ instruction on 32-bit ARMv5 and above architectures,
     // So use builtins whenever possible. No checks for ARMs < 5,
@@ -297,26 +319,16 @@ IMATHLIB_CONSTEXPR_INTR int countLeadingZeroes(uint32_t n) {
     if (n == 0) return 32;
     unsigned long index = 0;
     (void)_BitScanReverse(&index, n);
-    return 31 - index;
+    return static_cast<int>(31 - index);
 #else
-    countLeadingZeroesFallback(n);
+    clzFallback(n);
 #endif
 }
 
-constexpr int countTrailingZeroesFallback(uint64_t n) {
-    if (n == 0) return 64;
-IMATHLIB_MSC_WARNING(4146)
-    n = n & (-n); // extract rightmost bit
-    // This magic number, has bit representation that is a de Bruijn sequence.
-    // Because of that it is a perfect hash for powers of 2.
-    n *= detail::kDeBruijn64;
-    n >>= 58;          // top 6 bits are the perfect hash
-    return detail::power_of_2_lookup_array_64[n];
-}
 
-IMATHLIB_CONSTEXPR_INTR int countTrailingZeroes(uint64_t n) {
+IMATHLIB_CONSTEXPR_INTR int ctz(uint64_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
-        return countTrailingZeroesFallback(n);
+        return ctzFallback(n);
     }
     // This one is tricky
     // We DON'T want intrinsics on 32-bit architectures
@@ -327,7 +339,7 @@ IMATHLIB_CONSTEXPR_INTR int countTrailingZeroes(uint64_t n) {
     if (n == 0) return 64;
     return __builtin_ctzll(n);
 #else
-    return countTrailingZeroesFallback(n);
+    return ctzFallback(n);
 #endif
 
 #elif defined(_MSC_VER)
@@ -337,43 +349,28 @@ IMATHLIB_CONSTEXPR_INTR int countTrailingZeroes(uint64_t n) {
     if (n == 0) return 64;
     unsigned long index = 0;
     (void)_BitScanForward64(&index, n);
-    return index;
+    return static_cast<int>(index);
 #else
-    return countTrailingZeroesFallback(n);
+    return ctzFallback(n);
 #endif
 
-#elif IMATHLIB_CPP_VER >= 202002l
+#elif IMATHLIB_CPP_VER >= 202002L
     return std::countr_zero(n);
 
 #else
-    return countTrailingZeroesFallback(n);
+    return ctzFallback(n);
 #endif
 }
 
-constexpr int countTrailingZeroesFallback(uint32_t n) {
-    if (n == 0) return 32;
-IMATHLIB_MSC_WARNING(4146)
-    n = n & (-n); // extract rightmost bit
-    // This magic number has bit representation that is a de Bruijn sequence.
-    // Because of that it is a perfect hash for powers of 2.
-    n *= kDeBruijn32;
-    n >>= 27;          // top 5 bits are the perfect hash
-    return detail::power_of_2_lookup_array_32[n];
-}
-
-IMATHLIB_CONSTEXPR_INTR int countTrailingZeroes(uint32_t n) {
+IMATHLIB_CONSTEXPR_INTR int ctz(uint32_t n) {
     if (IMATHLIB_IS_CONSTEVAL) {
-        return countTrailingZeroesFallback(n);
+        return ctzFallback(n);
     }
 
 #if (defined(__GNUG__) || defined(__clang__))
-#if defined(__arm__)
-    return countTrailingZeroesFallback(n);
-#else
 #define IMATHLIB_FAST_CTZ32
     if (n == 0) return 32;
     return __builtin_ctz(n);
-#endif
 #elif IMATHLIB_CPP_VER >= 202002L
     return std::countr_zero(n);
 #elif defined(_MSC_VER) && !defined(_M_ARM)
@@ -382,10 +379,10 @@ IMATHLIB_CONSTEXPR_INTR int countTrailingZeroes(uint32_t n) {
     if (n == 0) return 32;
     unsigned long index = 0;
     (void)_BitScanForward(&index, n);
-    return index;
+    return static_cast<int>(index);
 
 #else
-    return countTrailingZeroesFallback(n);
+    return ctzFallback(n);
 #endif
 }
 
@@ -408,7 +405,7 @@ IMATHLIB_CONSTEXPR_INTR T gcdBinary(T a, T b) {
     if (a == 0) return b;
     if (b == 0) return a;
 
-    int common_tz = detail::countTrailingZeroes(a | b);
+    int common_tz = detail::ctz(a | b);
     b >>= common_tz;
 
     // Do not change it to do-while loop! Clang gets weirdly confused
@@ -421,7 +418,7 @@ IMATHLIB_CONSTEXPR_INTR T gcdBinary(T a, T b) {
         // and performs an extra check for architeture each loop turn...
         // Reported as a bug 10-2021.
         IMATHLIB_ASSUME(a != 0);
-        a >>= detail::countTrailingZeroes(a);
+        a >>= detail::ctz(a);
         // why not if() swap(); ? cause GCC can't generate CMOVs then
         detail::simpleSwapIf(a, b, a < b);
         a -= b;
@@ -450,7 +447,7 @@ IMATHLIB_CONSTEXPR_INTR T gcdBinary(T a, T b) {
  * Idea from:
  * http://ceur-ws.org/Vol-1326/020-Forisek.pdf
  * */
-static constexpr uint16_t bases_prime_test_u32[256] {
+constexpr uint16_t bases_prime_test_u32[256] {
     4718, 496, 49848, 7899, 9378, 6345, 445, 5874, 5974, 2979, 7007, 1450,
     2810, 4529, 5367, 4371, 1938, 1817, 2230, 303, 8022, 3065, 1016, 2636,
     266, 4283, 1621, 10756, 1925, 3393, 333, 1889, 221, 2522, 408, 5453,
@@ -501,7 +498,7 @@ static constexpr uint16_t bases_prime_test_u32[256] {
  * Idea from:
  * http://ceur-ws.org/Vol-1326/020-Forisek.pdf
  * */
-static constexpr uint32_t bases_prime_test_u64[128] {
+constexpr uint32_t bases_prime_test_u64[128] {
     30330285, 47106639, 46413094, 30597089, 32685830, 48603013, 31731201,
     30882849, 32323190, 31809401, 32460779, 31018750, 46643634, 55569395,
     47527190, 31169886, 47035014, 46757681, 29665674, 46855109, 13282987,
@@ -530,7 +527,7 @@ static constexpr uint32_t bases_prime_test_u64[128] {
 IMATHLIB_CONSTEXPR_INTR
 bool isSPRP(uint32_t n, uint32_t base) {
     uint32_t d = n - 1;
-    int s = countTrailingZeroes(d);
+    int s = ctz(d);
     d >>= s;
     uint32_t cur = powmod(base, d, n);
     if (cur == 1) return true;
@@ -548,7 +545,7 @@ bool isSPRP(uint32_t n, uint32_t base) {
 IMATHLIB_CONSTEXPR_X64
 bool isSPRP(uint64_t n, uint64_t base) {
     uint64_t d = n - 1;
-    int s = countTrailingZeroes(d);
+    int s = ctz(d);
     d >>= s;
     uint64_t cur = powmod(base, d, n);
     if (cur == 1) return true;
@@ -671,8 +668,8 @@ IMATHLIB_CONSTEXPR_INTR uint64_t mod128by64Fallback(const u128 n, uint64_t mod) 
     IMATHLIB_ASSUME(n.hi < mod);
 
     // difference in bit length
-    int bit_diff = detail::countLeadingZeroes(n.hi) -
-                   detail::countLeadingZeroes(mod);
+    int bit_diff = detail::clz(n.hi) -
+                   detail::clz(mod);
 
     // Due to higher bits modulo reduction,
     // 0 <= bit_diff < 64;
@@ -841,13 +838,13 @@ private:
     T array[SIZE];
     constexpr static size_t getSieveSize() {
         size_t result = sizeof(size_t) * 8
-                        - detail::countLeadingZeroesFallback(SIZE)
+                        - detail::clzFallback(SIZE)
                         + 2;
         return result * 3 / 4 * SIZE;
     }
 };
 
-static constexpr PrimeArray<64, uint16_t> kSmallPrimes;
+constexpr PrimeArray<64, uint16_t> kSmallPrimes;
 
 IMATHLIB_CONSTEXPR_INTR bool isPrime(uint32_t n) {
     if (n == 2 || n == 3 || n == 5 || n == 7) return true;
@@ -1287,7 +1284,7 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint32_t n) {
     constexpr uint32_t mask =
         0b11111101111111001111110111101100u;
     if ((mask >> (n & 31)) & 1) return false;
-    int trailing_zeroes = detail::countTrailingZeroes(n);
+    int trailing_zeroes = detail::ctz(n);
     if (trailing_zeroes & 1) return false;
     n >>= trailing_zeroes;
     if ((n&7) != 1) return n == 0;
@@ -1317,7 +1314,7 @@ IMATHLIB_CONSTEXPR20 bool isPerfectSquare(uint64_t n) {
         0b1111110111111101111111011110110111111101111111001111110111101100ull;
     // choose a bit in the mask, hopefully compiled to MOV + BT
     if ((mask >> (n & 63)) & 1) return false;
-    int trailing_zeroes = detail::countTrailingZeroes(n);
+    int trailing_zeroes = detail::ctz(n);
     if (trailing_zeroes & 1) return false;
     n >>= trailing_zeroes;
     if ((n&7) != 1) return n == 0;
